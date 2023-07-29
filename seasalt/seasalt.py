@@ -136,32 +136,30 @@ def plot_denoise(
     size: int = 3,
 ) -> None:
     im_gs = im.convert("L")
-    arr = np.array(im_gs)  # convert the PIL image object to array
+    arr = np.array(im_gs)
     seasoned_arr = apply_salt_pepper(arr, ratio=sp_ratio)
-    median_filter_corrected_image = medfilt(
-        apply_salt_pepper(arr, ratio=sp_ratio), size
-    )
+    median_filter_corrected_image = medfilt(np.copy(seasoned_arr), kernel_size=size)
     corrected_image = fixed_window_outlier_filter(
-        apply_salt_pepper(arr, ratio=sp_ratio), size  # type: ignore
+        np.copy(seasoned_arr), size=size  # type: ignore
     )
     corrected_image_plus_anisotropic = anisotropic_diffusion(corrected_image, kappa=10)
-    corrected_image_edges_method = pipe(apply_salt_pepper(arr, ratio=sp_ratio), size)
+    corrected_image_edges_method = pipe(np.copy(seasoned_arr), size=size)
     corrected_image_edges_method_plus_anisotropic = anisotropic_diffusion(
-        pipe(apply_salt_pepper(arr, ratio=sp_ratio), size), kappa=16
+        pipe(np.copy(seasoned_arr), size=size), kappa=16
     )
     corrected_adaptive_window = adaptive_kernel_size(
-        apply_salt_pepper(arr, ratio=sp_ratio), correction_function=np.median
+        np.copy(seasoned_arr), correction_function=np.median
     )
     corrected_adaptive_window_reisz = adaptive_kernel_size(
-        apply_salt_pepper(arr, ratio=sp_ratio),
-        5,
+        np.copy(seasoned_arr),
+        max_size=size,
         correction_function=modified_riesz_mean,
     )
     corrected_adaptive_window_reisz_edge = pipe(
-        apply_salt_pepper(arr, ratio=sp_ratio), size=size, func=adaptive_kernel_size
+        np.copy(seasoned_arr), size=size, func=adaptive_kernel_size
     )
 
-    noise_snr = signal_to_noise_ratio(im_gs, apply_salt_pepper(arr, ratio=sp_ratio))
+    noise_snr = signal_to_noise_ratio(im_gs, np.copy(seasoned_arr))
     aof_snr = signal_to_noise_ratio(im_gs, corrected_image)
     med_snr = signal_to_noise_ratio(im_gs, median_filter_corrected_image)
     aof_an_snr = signal_to_noise_ratio(im_gs, corrected_image_plus_anisotropic)
@@ -185,7 +183,7 @@ def plot_denoise(
     gs = fig.add_gridspec(5, 2, hspace=0.12, wspace=0.08)
     axes = gs.subplots(sharex="col", sharey="row")
     list(map(lambda ax: ax.set_axis_off(), axes.flatten()))
-    list(
+    list(  # type: ignore
         map(
             lambda input: input[0].set_title(input[1]),
             zip(
