@@ -1,5 +1,6 @@
 import warnings
 from functools import partial
+from itertools import product
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -45,31 +46,37 @@ def apply_correction_to_kernel(
     return kernel
 
 
-def get_dynamic_threshold(
-    size: int, padded_arr: NDArray[np.uint8], indices_of_salt_pepper: NDArray[np.int64]
-) -> int:
+def get_all_pixel_indices(arr: NDArray, size: int) -> NDArray:
+    h, w = arr.shape
+    return np.array(
+        list(
+            product(
+                range(int((size - 1) / 2), h - int((size - 1) / 2)),
+                range(int((size - 1) / 2), w - int((size - 1) / 2)),
+            )
+        )
+    )
+
+
+def get_dynamic_threshold(arr: NDArray[np.uint8], size: int) -> int:
+    arr = np.copy(arr).astype(np.uint8) + 1  # type: ignore
     all_kernels = list(
         filter(
             lambda x: x.shape == (size, size),
             [
-                padded_arr[get_kernel_slices(salt_and_pepper_pixel, size)]
-                for salt_and_pepper_pixel in indices_of_salt_pepper
+                arr[get_kernel_slices(ix, size)]
+                for ix in get_all_pixel_indices(arr, size)
             ],
         )
     )
-    kernel_center = int((size - 1) / 2)
-    kernel_means_array = list(
-        map(
-            partial(calc_mean, kernel_center),
-            all_kernels,
-        )
-    )
     counts, values = np.histogram(
-        kernel_means_array, bins=range(0, 256, 5)  # type: ignore
+        np.mean(np.array(all_kernels), axis=(1, 2)), bins=range(0, 256, 5)
     )
-    inflection_points = np.diff(counts.tolist() + [0, 0]) > 0
+    inflection_points = np.diff(counts.tolist() + [0, 0]) < 0
     return (
-        values[inflection_points][0] + 5 if np.any(inflection_points) else values[0] + 5
+        values[inflection_points][0] - 10
+        if np.any(inflection_points)
+        else values[0] - 10
     )
 
 
@@ -83,26 +90,17 @@ def fixed_window_outlier_filter(
     if mask is not None:
         padded_mask = np.pad(mask, (int((size - 1) / 2), int((size - 1) / 2)), "edge")
         padded_arr = np.ma.masked_where(padded_mask, padded_arr)
-    indices_of_salt_pepper = np.argwhere((arr == 0) | (arr == 255))
-    threshold = get_dynamic_threshold(size, padded_arr, indices_of_salt_pepper)
-    for index in indices_of_salt_pepper:
+    threshold = get_dynamic_threshold(arr, size)
+    for index in np.argwhere(arr + 1 < threshold):
         slices = get_kernel_slices(index, size)
-        if np.mean(padded_arr[slices]) > threshold:
-            padded_arr[slices] = apply_correction_to_kernel(
-                padded_arr[slices], size=size, corrective_function=np.mean
-            )
+        padded_arr[slices] = apply_correction_to_kernel(
+            padded_arr[slices], size=size, corrective_function=np.median
+        )
+
     return padded_arr[
         int((size - 1) / 2) : -int((size - 1) / 2),
         int((size - 1) / 2) : -int((size - 1) / 2),
     ]
-
-
-def calc_mean(kernel_center: int, kernel: NDArray[np.uint8]) -> int:
-    _mean = (
-        np.mean(kernel.astype(np.float64)[(kernel > 0) & (kernel < 255)])
-        - kernel[kernel_center, kernel_center]
-    ).astype(np.uint8)
-    return _mean if isinstance(_mean, np.uint8) else 0  # type: ignore
 
 
 def coerce_to_array(im: NDArray[np.uint8] | Image.Image) -> NDArray[np.uint8]:
@@ -301,7 +299,6 @@ def modified_riesz_mean(kernel: NDArray[np.uint8]) -> float:
         / (1 + ((center_ix + 1 - ixs[:, 0]) ** 2 + (center_ix + 1 - ixs[:, 1]) ** 2))
         ** 2
     )
-
     numerator = np.sum(pw * kernel[(kernel != 0) & (kernel != 255)])
     denominator = np.sum(pw)
     return numerator / denominator if denominator > 0 else 0  # type: ignore
@@ -313,7 +310,9 @@ def adaptive_kernel_size(
     correction_function: Callable = modified_riesz_mean,
     mask: Optional[NDArray[np.bool_]] = None,
 ) -> NDArray[np.uint8]:
-    padded_arr = np.pad(arr, ((max_size, max_size), (max_size, max_size)), "symmetric")
+    padded_arr = np.pad(
+        np.copy(arr), ((max_size, max_size), (max_size, max_size)), "symmetric"
+    )
     if mask is not None:
         arr = np.ma.masked_where(mask, arr)
         padded_mask = np.pad(
@@ -330,16 +329,12 @@ def adaptive_kernel_size(
     ]:
         for k_size in range(1, max_size + 1):
             kernel = padded_arr[i - k_size : i + k_size, j - k_size : j + k_size]
-            count_0 = np.argwhere((kernel == 0)).shape[0]
-            count_255 = np.argwhere((kernel == 255)).shape[0]
+            count_noise = np.argwhere((kernel == 0) | (kernel == 255)).shape[0]
             kernel_center = padded_arr[i, j]
             if (
-                max(count_0, count_255) < 2 * k_size**2
-                and kernel_center
-                in [
-                    0,
-                    255,
-                ]
+                2 * count_noise < (2 * k_size) ** 2  ##
+                # 2 * count_noise < (2 * k_size + 1) ** 2 ##
+                and kernel_center in [0, 255]
             ) or (k_size == max_size):
                 arr[i - max_size, j - max_size] = correction_function(kernel)
                 break
