@@ -73,9 +73,9 @@ def get_dynamic_threshold(arr: NDArray[np.uint8], size: int) -> int:
     )
     inflection_points = np.diff(counts.tolist() + [0, 0]) < 0
     return (
-        values[inflection_points][0] - 10
+        values[inflection_points][0] + 10
         if np.any(inflection_points)
-        else values[0] - 10
+        else values[0] + 10
     )
 
 
