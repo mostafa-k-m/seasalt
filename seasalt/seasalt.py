@@ -1,6 +1,7 @@
 import warnings
 from functools import partial
 from pathlib import Path
+from typing import Callable, Optional
 
 import cv2
 import matplotlib.pyplot as plt
@@ -12,7 +13,7 @@ from scipy.signal import medfilt
 warnings.filterwarnings("ignore")
 
 
-def apply_salt_pepper(arr, ratio=0.1):
+def apply_salt_pepper(arr: NDArray[np.uint8], ratio: float = 0.1) -> NDArray[np.uint8]:
     flat = arr.flatten()
     tot_number_of_pixels = len(flat)
     number_of_pixels_to_be_replaced = round(tot_number_of_pixels * ratio)
@@ -23,10 +24,12 @@ def apply_salt_pepper(arr, ratio=0.1):
     )
     flat[pixels_to_be_replaced[: round(number_of_pixels_to_be_replaced / 2)]] = 0.0
     flat[pixels_to_be_replaced[-round(number_of_pixels_to_be_replaced / 2) :]] = 255.0
-    return np.uint8(flat.reshape(arr.shape))
+    return np.uint8(flat.reshape(arr.shape))  # type: ignore
 
 
-def get_kernel_slices(original_arr_indices, size=3, pad=True):
+def get_kernel_slices(
+    original_arr_indices: NDArray[np.uint8], size: int = 3, pad: bool = True
+) -> tuple[slice, slice]:
     kernel_center = int((size - 1) / 2)
     x, y = original_arr_indices + (kernel_center if pad else 0)
     return slice(x - size + kernel_center + 1, x + size - kernel_center), slice(
@@ -34,7 +37,9 @@ def get_kernel_slices(original_arr_indices, size=3, pad=True):
     )
 
 
-def filter_below_threshold(kernel, threshold, size):
+def filter_below_threshold(
+    kernel: NDArray[np.uint8], threshold: int, size: int
+) -> NDArray[np.uint8]:
     kernel_center = int((size - 1) / 2)
     mean = (
         (np.sum(kernel.astype(np.float64)) - kernel[kernel_center, kernel_center])
@@ -45,17 +50,9 @@ def filter_below_threshold(kernel, threshold, size):
     return kernel.astype(np.uint8)
 
 
-def fixed_window_outlier_filter(
-    arr: NDArray[np.uint8], size: int = 3, mask=None
-) -> NDArray[np.uint8]:
-    assert size % 2 == 1, "Kernel Size Must be an Odd Number"
-    if not isinstance(arr, np.ndarray):
-        arr = np.array(arr)
-    padded_arr = np.pad(arr, (int((size - 1) / 2), int((size - 1) / 2)), "edge")
-    if mask is not None:
-        padded_mask = np.pad(mask, (int((size - 1) / 2), int((size - 1) / 2)), "edge")
-        padded_arr = np.ma.masked_where(padded_mask, padded_arr)
-    indices_of_salt_pepper = np.argwhere((arr == 0) | (arr == 255))
+def get_dynamic_threshold(
+    size: int, padded_arr: NDArray[np.uint8], indices_of_salt_pepper: NDArray[np.int64]
+) -> int:
     all_kernels = list(
         filter(
             lambda x: x.shape == (size, size),
@@ -72,12 +69,27 @@ def fixed_window_outlier_filter(
             all_kernels,
         )
     )
-    counts, values = np.histogram(kernel_means_array, bins=range(0, 256, 5))
+    counts, values = np.histogram(
+        kernel_means_array, bins=range(0, 256, 5)  # type: ignore
+    )
     inflection_points = np.diff(counts.tolist() + [0, 0]) > 0
-    if np.any(inflection_points):
-        threshold = values[inflection_points][0] + 5
-    else:
-        threshold = values[0] + 5
+    return (
+        values[inflection_points][0] + 5 if np.any(inflection_points) else values[0] + 5
+    )
+
+
+def fixed_window_outlier_filter(
+    arr: NDArray[np.uint8], size: int = 3, mask: Optional[NDArray[np.bool_]] = None
+) -> NDArray[np.uint8]:
+    assert size % 2 == 1, "Kernel Size Must be an Odd Number"
+    if not isinstance(arr, np.ndarray):
+        arr = np.array(arr)
+    padded_arr = np.pad(arr, (int((size - 1) / 2), int((size - 1) / 2)), "edge")
+    if mask is not None:
+        padded_mask = np.pad(mask, (int((size - 1) / 2), int((size - 1) / 2)), "edge")
+        padded_arr = np.ma.masked_where(padded_mask, padded_arr)
+    indices_of_salt_pepper = np.argwhere((arr == 0) | (arr == 255))
+    threshold = get_dynamic_threshold(size, padded_arr, indices_of_salt_pepper)
     for index in indices_of_salt_pepper:
         slices = get_kernel_slices(index, size)
         padded_arr[slices] = filter_below_threshold(
@@ -89,23 +101,25 @@ def fixed_window_outlier_filter(
     ]
 
 
-def calc_mean(kernel_center, kernel):
+def calc_mean(kernel_center: int, kernel: NDArray[np.uint8]) -> int:
     _mean = (
         np.mean(kernel.astype(np.float64)[(kernel > 0) & (kernel < 255)])
         - kernel[kernel_center, kernel_center]
     ).astype(np.uint8)
-    return _mean if isinstance(_mean, np.uint8) else 0
+    return _mean if isinstance(_mean, np.uint8) else 0  # type: ignore
 
 
-def coerce_to_array(im):
+def coerce_to_array(im: NDArray[np.uint8] | Image.Image) -> NDArray[np.uint8]:
     return im if isinstance(im, np.ndarray) else np.array(im)
 
 
-def coerce_to_PIL(im):
-    return Image.fromarray(im) if isinstance(im, np.ndarray) else im
+def coerce_to_PIL(im: NDArray[np.uint8] | Image.Image) -> Image.Image:
+    return Image.fromarray(im) if isinstance(im, np.ndarray) else im  # type: ignore
 
 
-def signal_to_noise_ratio(original, transformed):
+def signal_to_noise_ratio(
+    original: NDArray[np.uint8] | Image.Image, transformed: NDArray[np.uint8]
+) -> float:
     # sourcery skip: assign-if-exp, reintroduce-else
     original = coerce_to_array(original)
     transformed = coerce_to_array(transformed)
@@ -115,7 +129,12 @@ def signal_to_noise_ratio(original, transformed):
     return 10 * np.log10((255**2) / mse)
 
 
-def plot_denoise(im, sp_ratio=0.05, save_path=None, size=3):
+def plot_denoise(
+    im: Image.Image,
+    sp_ratio: float = 0.05,
+    save_path: Optional[str] = None,
+    size: int = 3,
+) -> None:
     im_gs = im.convert("L")
     arr = np.array(im_gs)  # convert the PIL image object to array
     seasoned_arr = apply_salt_pepper(arr, ratio=sp_ratio)
@@ -123,7 +142,7 @@ def plot_denoise(im, sp_ratio=0.05, save_path=None, size=3):
         apply_salt_pepper(arr, ratio=sp_ratio), size
     )
     corrected_image = fixed_window_outlier_filter(
-        apply_salt_pepper(arr, ratio=sp_ratio), size
+        apply_salt_pepper(arr, ratio=sp_ratio), size  # type: ignore
     )
     corrected_image_plus_anisotropic = anisotropic_diffusion(corrected_image, kappa=10)
     corrected_image_edges_method = pipe(apply_salt_pepper(arr, ratio=sp_ratio), size)
@@ -201,15 +220,19 @@ def plot_denoise(im, sp_ratio=0.05, save_path=None, size=3):
     axes[4][1].imshow(
         corrected_adaptive_window_reisz_edge, cmap="gray", vmin=0, vmax=255
     )
-    # plt.axis("off")
-    # if save_path:
-    #     Path(save_path).parent.mkdir(parents=True, exist_ok=True)
-    #     fig.savefig(save_path)
-    #     plt.close()
-    return corrected_image
+    if save_path:
+        plt.axis("off")
+        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(save_path)
+        plt.close()
 
 
-def anisotropic_diffusion(img, num_iterations=10, delta_t=0.1, kappa=50):
+def anisotropic_diffusion(
+    img: NDArray[np.uint8] | Image.Image,
+    num_iterations: int = 10,
+    delta_t: float = 0.1,
+    kappa: int = 50,
+) -> NDArray[np.uint8]:
     diffused_image = np.array(img).astype(np.float32)
 
     for _ in range(num_iterations):
@@ -226,18 +249,15 @@ def anisotropic_diffusion(img, num_iterations=10, delta_t=0.1, kappa=50):
     return diffused_image.astype(np.uint8)
 
 
-def get_c(img, kappa=50):
+def get_c(img: NDArray[np.uint8] | Image.Image, kappa: int = 50) -> float:
     diffused_image = np.array(img).astype(np.float32)
     d_x = np.gradient(diffused_image, axis=1)
     d_y = np.gradient(diffused_image, axis=0)
-    c = 1 / (1 + (np.sqrt(d_x**2 + d_y**2) / kappa) ** 2)
-    d_xx = np.gradient(c * d_x, axis=1)
-    d_yy = np.gradient(c * d_y, axis=0)
-    return c, d_xx, d_yy
+    return 1 / (1 + (np.sqrt(d_x**2 + d_y**2) / kappa) ** 2)
 
 
-def get_edges(img):
-    c, d_xx, d_yy = get_c(img)
+def get_edges(img: NDArray[np.uint8] | Image.Image) -> NDArray[np.uint8]:
+    c = get_c(img)
     c = cv2.GaussianBlur(c, (3, 3), 0)
     c[c > 0.9] = 0
     c[c != 0] = 1
@@ -251,7 +271,7 @@ def get_edges(img):
     return edges_mask
 
 
-def skeletonize_custom(img):
+def skeletonize_custom(img: NDArray[np.uint8]) -> NDArray[np.bool_]:
     skel = np.zeros(img.shape, np.uint8)
     _, image_edit = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY)
     element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
@@ -265,7 +285,11 @@ def skeletonize_custom(img):
     return cv2.GaussianBlur(skel.astype(np.uint8), (3, 3), 0).astype(bool)
 
 
-def pipe(img, size, func=fixed_window_outlier_filter):
+def pipe(
+    img: NDArray[np.uint8] | Image.Image,
+    size: int,
+    func: Callable = fixed_window_outlier_filter,
+) -> NDArray[np.uint8]:
     corrected_img = func(img, size)
     edges_mask = get_edges(corrected_img)
     skeletonized_mask = skeletonize_custom(edges_mask)
@@ -274,7 +298,7 @@ def pipe(img, size, func=fixed_window_outlier_filter):
     return np.ma.filled(np.where(base.mask, edges, base))
 
 
-def modified_riesz_mean(kernel):
+def modified_riesz_mean(kernel: NDArray[np.uint8]) -> float:
     size = kernel.shape[0]
     center_ix = int((size - 1) / 2)
     ixs = np.transpose(np.where((kernel != 0) & (kernel != 255)))
@@ -286,12 +310,15 @@ def modified_riesz_mean(kernel):
 
     numerator = np.sum(pw * kernel[(kernel != 0) & (kernel != 255)])
     denominator = np.sum(pw)
-    return numerator / denominator if denominator > 0 else 0
+    return numerator / denominator if denominator > 0 else 0  # type: ignore
 
 
 def adaptive_kernel_size(
-    arr, max_size=9, correction_function=modified_riesz_mean, mask=None
-):
+    arr: NDArray[np.uint8],
+    max_size: int = 9,
+    correction_function: Callable = modified_riesz_mean,
+    mask: Optional[NDArray[np.bool_]] = None,
+) -> NDArray[np.uint8]:
     padded_arr = np.pad(arr, ((max_size, max_size), (max_size, max_size)), "symmetric")
     if mask is not None:
         arr = np.ma.masked_where(mask, arr)
