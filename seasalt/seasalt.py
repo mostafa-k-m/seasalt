@@ -1,5 +1,4 @@
 import warnings
-from functools import partial
 from itertools import product
 from pathlib import Path
 from typing import Callable, Optional
@@ -128,6 +127,7 @@ def plot_denoise(
     sp_ratio: float = 0.05,
     save_path: Optional[str] = None,
     size: int = 3,
+    max_size: int = 15,
 ) -> None:
     im_gs = im.convert("L")
     arr = np.array(im_gs)
@@ -142,15 +142,15 @@ def plot_denoise(
         pipe(np.copy(seasoned_arr), size=size), kappa=16
     )
     corrected_adaptive_window = adaptive_kernel_size(
-        np.copy(seasoned_arr), correction_function=np.median
+        np.copy(seasoned_arr), max_size=max_size, correction_function=np.median
     )
     corrected_adaptive_window_reisz = adaptive_kernel_size(
         np.copy(seasoned_arr),
-        max_size=size,
+        max_size=max_size,
         correction_function=modified_riesz_mean,
     )
     corrected_adaptive_window_reisz_edge = pipe(
-        np.copy(seasoned_arr), size=size, func=adaptive_kernel_size
+        np.copy(seasoned_arr), size=max_size, func=adaptive_kernel_size
     )
 
     noise_snr = signal_to_noise_ratio(im_gs, np.copy(seasoned_arr))
