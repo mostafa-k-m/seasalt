@@ -37,17 +37,12 @@ def get_kernel_slices(
     )
 
 
-def filter_below_threshold(
-    kernel: NDArray[np.uint8], threshold: int, size: int
+def apply_correction_to_kernel(
+    kernel: NDArray[np.uint8], size: int, corrective_function: Callable
 ) -> NDArray[np.uint8]:
     kernel_center = int((size - 1) / 2)
-    mean = (
-        (np.sum(kernel.astype(np.float64)) - kernel[kernel_center, kernel_center])
-        / (size**2)
-    ).astype(np.uint8)
-    if np.abs(float(kernel[kernel_center, kernel_center] - mean)) > threshold:
-        kernel[kernel_center, kernel_center] = mean
-    return kernel.astype(np.uint8)
+    kernel[kernel_center, kernel_center] = corrective_function(kernel)
+    return kernel
 
 
 def get_dynamic_threshold(
@@ -92,9 +87,10 @@ def fixed_window_outlier_filter(
     threshold = get_dynamic_threshold(size, padded_arr, indices_of_salt_pepper)
     for index in indices_of_salt_pepper:
         slices = get_kernel_slices(index, size)
-        padded_arr[slices] = filter_below_threshold(
-            padded_arr[slices], threshold, size=size
-        )
+        if np.mean(padded_arr[slices]) > threshold:
+            padded_arr[slices] = apply_correction_to_kernel(
+                padded_arr[slices], size=size, corrective_function=np.mean
+            )
     return padded_arr[
         int((size - 1) / 2) : -int((size - 1) / 2),
         int((size - 1) / 2) : -int((size - 1) / 2),
@@ -331,7 +327,7 @@ def adaptive_kernel_size(
         & (indices_of_salt_pepper[:, 0] < m - max_size)
         & (1 + max_size <= indices_of_salt_pepper[:, 1])
         & (indices_of_salt_pepper[:, 1] < n - max_size)
-    ]:  ###
+    ]:
         for k_size in range(1, max_size + 1):
             kernel = padded_arr[i - k_size : i + k_size, j - k_size : j + k_size]
             count_0 = np.argwhere((kernel == 0)).shape[0]
