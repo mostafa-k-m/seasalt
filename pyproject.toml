@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "project"
+version = "0.1.0"
+description = ""
+authors = ["Mostafa Kamal <mostafa.k.mahmoud@zoho.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.12"
+matplotlib = "^3.7.1"
+seaborn = "^0.12.2"
+numpy = "^1.25.0"
+scipy = "^1.10.1"
+scikit-image = "^0.21.0"
+opencv-python = "^4.8.0.74"
+opencv-contrib-python = "^4.8.0.74"
+ipywidgets = "^8.0.7"
+rich = "^13.4.2"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+ruff = "^0.0.275"
+rich = "^13.4.2"
+ipython = "^8.14.0"
+ipykernel = "^6.23.3"
+jupyter = "^1.0.0"
+ipywidgets = "^8.0.6"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
