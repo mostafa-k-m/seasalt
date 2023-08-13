@@ -147,7 +147,7 @@ def plot_denoise(
     corrected_adaptive_window_reisz = adaptive_kernel_size(
         np.copy(seasoned_arr),
         max_size=max_size,
-        correction_function=modified_riesz_mean,
+        correction_function=weighted_mean,
     )
     corrected_adaptive_window_reisz_edge = pipe(
         np.copy(seasoned_arr), size=max_size, func=adaptive_kernel_size
@@ -290,24 +290,44 @@ def pipe(
     return np.ma.filled(np.where(base.mask, edges, base))
 
 
-def modified_riesz_mean(kernel: NDArray[np.uint8]) -> float:
+def weighted_mean(kernel: NDArray[np.uint8]) -> float:
     size = kernel.shape[0]
     center_ix = int((size - 1) / 2)
     ixs = np.transpose(np.where((kernel != 0) & (kernel != 255)))
-    pw = (
-        1
-        / (1 + ((center_ix + 1 - ixs[:, 0]) ** 2 + (center_ix + 1 - ixs[:, 1]) ** 2))
-        ** 2
+    distance_weights = (
+        1 / (1 + (ixs[:, 0] - center_ix) ** 2 + (ixs[:, 1] - center_ix) ** 2) ** 2
     )
-    numerator = np.sum(pw * kernel[(kernel != 0) & (kernel != 255)])
-    denominator = np.sum(pw)
-    return numerator / denominator if denominator > 0 else 0  # type: ignore
+    return (
+        np.sum(distance_weights * kernel[(kernel != 0) & (kernel != 255)])
+        / np.sum(distance_weights)
+        if (np.sum(distance_weights)) > 0
+        else 0
+    )  # type: ignore
+
+
+def weighted_median(kernel: NDArray[np.uint8]) -> int:
+    size = kernel.shape[0]
+    center_ix = int((size - 1) / 2)
+    ixs = np.transpose(np.where((kernel != 0) & (kernel != 255)))
+    valid_values = kernel[(kernel != 0) & (kernel != 255)]
+    distance_weights = (
+        1 / (1 + (ixs[:, 0] - center_ix) ** 2 + (ixs[:, 1] - center_ix) ** 2) ** 2
+    )
+    sorted_ixs = np.argsort(valid_values)
+    cumsum = np.cumsum(distance_weights[sorted_ixs])
+    median_ix = np.searchsorted(cumsum, 0.5 * cumsum[-1])
+    if cumsum[median_ix] / cumsum[-1] == 0.5:
+        return 0.5 * (  # type: ignore
+            valid_values[sorted_ixs[median_ix]]
+            + valid_values[sorted_ixs[min(median_ix + 1, len(sorted_ixs) - 1)]]
+        )
+    return valid_values[sorted_ixs[median_ix]]  # type: ignore
 
 
 def adaptive_kernel_size(
     arr: NDArray[np.uint8],
     max_size: int = 9,
-    correction_function: Callable = modified_riesz_mean,
+    correction_function: Callable = weighted_mean,
     mask: Optional[NDArray[np.bool_]] = None,
 ) -> NDArray[np.uint8]:
     padded_arr = np.pad(
