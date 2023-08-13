@@ -331,11 +331,9 @@ def adaptive_kernel_size(
             kernel = padded_arr[i - k_size : i + k_size, j - k_size : j + k_size]
             count_noise = np.argwhere((kernel == 0) | (kernel == 255)).shape[0]
             kernel_center = padded_arr[i, j]
-            if (
-                2 * count_noise < (2 * k_size) ** 2  ##
-                # 2 * count_noise < (2 * k_size + 1) ** 2 ##
-                and kernel_center in [0, 255]
-            ) or (k_size == max_size):
+            if (2 * count_noise < (k_size) ** 2 and kernel_center in [0, 255]) or (
+                k_size == max_size
+            ):
                 arr[i - max_size, j - max_size] = correction_function(kernel)
                 break
     return arr
