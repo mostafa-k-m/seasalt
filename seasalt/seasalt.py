@@ -316,11 +316,6 @@ def weighted_median(kernel: NDArray[np.uint8], exp: int = 1) -> float:
     sorted_ixs = np.argsort(valid_values)
     cumsum = np.cumsum(distance_weights[sorted_ixs])
     median_ix = np.searchsorted(cumsum, 0.5 * cumsum[-1])
-    if cumsum[median_ix] / cumsum[-1] == 0.5:
-        return 0.5 * (  # type: ignore
-            valid_values[sorted_ixs[median_ix]]
-            + valid_values[sorted_ixs[min(median_ix + 1, len(sorted_ixs) - 1)]]
-        )
     return valid_values[sorted_ixs[median_ix]]  # type: ignore
 
 
