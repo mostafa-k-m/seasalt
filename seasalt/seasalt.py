@@ -1,4 +1,5 @@
 import warnings
+from functools import partial
 from itertools import product
 from pathlib import Path
 from typing import Callable, Optional
@@ -73,14 +74,15 @@ def get_dynamic_threshold(arr: NDArray[np.uint8], size: int) -> int:
     )
     inflection_points = np.diff(counts.tolist() + [0, 0]) < 0
     return (
-        values[inflection_points][0] + 10
-        if np.any(inflection_points)
-        else values[0] + 10
+        values[inflection_points][0] + 1 if np.any(inflection_points) else values[0] + 1
     )
 
 
 def fixed_window_outlier_filter(
-    arr: NDArray[np.uint8], size: int = 3, mask: Optional[NDArray[np.bool_]] = None
+    arr: NDArray[np.uint8],
+    size: int = 3,
+    mask: Optional[NDArray[np.bool_]] = None,
+    correction_function: Callable = np.median,
 ) -> NDArray[np.uint8]:
     assert size % 2 == 1, "Kernel Size Must be an Odd Number"
     if not isinstance(arr, np.ndarray):
@@ -93,7 +95,9 @@ def fixed_window_outlier_filter(
     for index in np.argwhere(arr + 1 < threshold):
         slices = get_kernel_slices(index, size)
         padded_arr[slices] = apply_correction_to_kernel(
-            padded_arr[slices], size=size, corrective_function=np.median
+            padded_arr[slices],
+            size=size,
+            corrective_function=partial(correction_function, threshold=threshold),
         )
 
     return padded_arr[
@@ -290,26 +294,37 @@ def pipe(
     return np.ma.filled(np.where(base.mask, edges, base))
 
 
-def weighted_mean(kernel: NDArray[np.uint8], exp: int = 1) -> float:
+def weighted_mean(
+    kernel: NDArray[np.uint8], exp: int = 1, threshold: Optional[float] = None
+) -> float:
     size = kernel.shape[0]
     center_ix = int((size - 1) / 2)
-    ixs = np.transpose(np.where((kernel != 0) & (kernel != 255)))
+    if threshold:
+        selector = kernel + 1 > threshold
+    else:
+        selector = (kernel != 0) & (kernel != 255)
+    ixs = np.transpose(np.where(selector))
     distance_weights = (
         1 / (1 + (ixs[:, 0] - center_ix) ** 2 + (ixs[:, 1] - center_ix) ** 2) ** exp
     )
     return (
-        np.sum(distance_weights * kernel[(kernel != 0) & (kernel != 255)])
-        / np.sum(distance_weights)
+        np.sum(distance_weights * kernel[selector]) / np.sum(distance_weights)
         if (np.sum(distance_weights)) > 0
         else 0
     )  # type: ignore
 
 
-def weighted_median(kernel: NDArray[np.uint8], exp: int = 1) -> float:
+def weighted_median(
+    kernel: NDArray[np.uint8], exp: int = 1, threshold: Optional[float] = None
+) -> float:
     size = kernel.shape[0]
     center_ix = int((size - 1) / 2)
-    ixs = np.transpose(np.where((kernel != 0) & (kernel != 255)))
-    valid_values = kernel[(kernel != 0) & (kernel != 255)]
+    if threshold:
+        selector = kernel + 1 > threshold
+    else:
+        selector = (kernel != 0) & (kernel != 255)
+    ixs = np.transpose(np.where(selector))
+    valid_values = kernel[selector]
     distance_weights = (
         1 / (1 + (ixs[:, 0] - center_ix) ** 2 + (ixs[:, 1] - center_ix) ** 2) ** exp
     )
