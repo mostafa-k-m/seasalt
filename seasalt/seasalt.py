@@ -290,12 +290,12 @@ def pipe(
     return np.ma.filled(np.where(base.mask, edges, base))
 
 
-def weighted_mean(kernel: NDArray[np.uint8]) -> float:
+def weighted_mean(kernel: NDArray[np.uint8], exp: int = 1) -> float:
     size = kernel.shape[0]
     center_ix = int((size - 1) / 2)
     ixs = np.transpose(np.where((kernel != 0) & (kernel != 255)))
     distance_weights = (
-        1 / (1 + (ixs[:, 0] - center_ix) ** 2 + (ixs[:, 1] - center_ix) ** 2) ** 2
+        1 / (1 + (ixs[:, 0] - center_ix) ** 2 + (ixs[:, 1] - center_ix) ** 2) ** exp
     )
     return (
         np.sum(distance_weights * kernel[(kernel != 0) & (kernel != 255)])
@@ -305,13 +305,13 @@ def weighted_mean(kernel: NDArray[np.uint8]) -> float:
     )  # type: ignore
 
 
-def weighted_median(kernel: NDArray[np.uint8]) -> int:
+def weighted_median(kernel: NDArray[np.uint8], exp: int = 1) -> float:
     size = kernel.shape[0]
     center_ix = int((size - 1) / 2)
     ixs = np.transpose(np.where((kernel != 0) & (kernel != 255)))
     valid_values = kernel[(kernel != 0) & (kernel != 255)]
     distance_weights = (
-        1 / (1 + (ixs[:, 0] - center_ix) ** 2 + (ixs[:, 1] - center_ix) ** 2) ** 2
+        1 / (1 + (ixs[:, 0] - center_ix) ** 2 + (ixs[:, 1] - center_ix) ** 2) ** exp
     )
     sorted_ixs = np.argsort(valid_values)
     cumsum = np.cumsum(distance_weights[sorted_ixs])
