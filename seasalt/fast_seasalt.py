@@ -30,11 +30,14 @@ def weighted_mean(
     selector = kernel + 1 > threshold
     ixs = np.transpose(np.where(selector))
     distance_weights = np.array([distance_lookup[ix[0]][ix[1]] for ix in ixs])
-    return (  # type: ignore
-        np.sum(distance_weights * kernel[selector]) / np.sum(distance_weights)  # type: ignore
+    if distance_weights.shape == (0,):
+        return np.median(kernel)  # type: ignore
+    return (
+        np.sum(distance_weights * kernel[selector])  # type: ignore
+        / np.sum(distance_weights)
         if (np.sum(distance_weights)) > 0  # type: ignore
         else 0
-    )  # type: ignore
+    )
 
 
 def calculate_distance_lookups(

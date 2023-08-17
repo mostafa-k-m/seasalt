@@ -307,6 +307,8 @@ def weighted_mean(
     distance_weights = (
         1 / (1 + (ixs[:, 0] - center_ix) ** 2 + (ixs[:, 1] - center_ix) ** 2) ** exp
     )
+    if distance_weights.shape == (0,):
+        return np.median(kernel)  # type: ignore
     return (
         np.sum(distance_weights * kernel[selector]) / np.sum(distance_weights)
         if (np.sum(distance_weights)) > 0
@@ -328,6 +330,8 @@ def weighted_median(
     distance_weights = (
         1 / (1 + (ixs[:, 0] - center_ix) ** 2 + (ixs[:, 1] - center_ix) ** 2) ** exp
     )
+    if distance_weights.shape == (0,):
+        return np.median(kernel)  # type: ignore
     sorted_ixs = np.argsort(valid_values)
     cumsum = np.cumsum(distance_weights[sorted_ixs])
     median_ix = np.searchsorted(cumsum, 0.5 * cumsum[-1])

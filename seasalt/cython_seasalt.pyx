@@ -41,8 +41,10 @@ cpdef float weighted_mean(
     
     cdef cnp.ndarray[long, ndim=2] ixs = np.transpose(np.where(kernel + 1 > threshold))
     cdef int num_ixs = ixs.shape[0]
+    if num_ixs == 0:
+        return np.median(kernel)
+
     cdef cnp.ndarray[double, ndim=1] distance_weights = np.empty(num_ixs, dtype=np.float64)
-    
     for i in range(num_ixs):
         distance_weights[i] = distance_lookup[ixs[i, 0]][ixs[i, 1]]
     
