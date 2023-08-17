@@ -99,7 +99,7 @@ cpdef cnp.ndarray[cnp.uint8_t, ndim=2] fixed_window_outlier_filter(
     assert size % 2 == 1, "Kernel Size Must be an Odd Number"
     cdef int kernel_center = (size - 1) // 2
     cdef cnp.ndarray[cnp.uint8_t, ndim=2] padded_arr = np.pad(arr, ((kernel_center, kernel_center), (kernel_center, kernel_center)), "edge")
-    cdef int threshold = get_dynamic_threshold(arr, size)
+    cdef int threshold = np.clip(get_dynamic_threshold(arr, size), 5, 255)
     cdef dict distance_lookup = calculate_distance_lookups(size, exp)
     cdef cnp.ndarray[cnp.uint8_t, ndim=2] result = arr.copy()
 

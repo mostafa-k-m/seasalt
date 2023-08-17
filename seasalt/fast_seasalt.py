@@ -71,7 +71,7 @@ def fixed_window_outlier_filter(
     if not isinstance(arr, np.ndarray):
         arr = np.array(arr)
     padded_arr = np.pad(arr, (int((size - 1) / 2), int((size - 1) / 2)), "edge")
-    threshold = get_dynamic_threshold(arr, size)
+    threshold = np.clip(get_dynamic_threshold(arr, size), 5, 155)
     distance_lookup = calculate_distance_lookups(size, exp)
     for index in np.argwhere(arr + 1 < threshold):
         arr[*index] = weighted_mean(
