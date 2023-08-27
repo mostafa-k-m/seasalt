@@ -18,16 +18,20 @@ def get_dynamic_threshold(arr: NDArray[np.uint8], size: int) -> int:
     all_kernels = get_all_kernels(arr, size)
     mean_kernels = np.mean(all_kernels, axis=(1, 2))
     counts, values = np.histogram(mean_kernels, bins=range(0, 256, 5))
-    inflection_points = np.diff(counts.tolist() + [0, 0]) < 0
-    return (
-        values[inflection_points][0] + 1 if np.any(inflection_points) else values[0] + 1
-    )
+    if np.sum(counts > 0) >= 20:
+        inflection_points = np.diff(counts.tolist() + [0, 0]) < 0
+        return (
+            values[inflection_points][0] + 1
+            if np.any(inflection_points)
+            else values[0] + 1
+        )
+    return 2
 
 
 def weighted_mean(
     kernel: NDArray[np.uint8], distance_lookup, threshold: int = 1
 ) -> float:
-    selector = kernel + 1 > threshold
+    selector = kernel + 1 >= threshold
     ixs = np.transpose(np.where(selector))
     distance_weights = np.array([distance_lookup[ix[0]][ix[1]] for ix in ixs])
     if distance_weights.shape == (0,):
@@ -73,8 +77,7 @@ def fixed_window_outlier_filter(
     padded_arr = np.pad(arr, (int((size - 1) / 2), int((size - 1) / 2)), "edge")
     threshold = (
         np.clip(get_dynamic_threshold(arr, size), 2, 155)
-        if np.sum((arr == 0) | (arr == 255)) / (arr.shape[0] * arr.shape[1])
-        > 0.6
+        if np.sum((arr == 0) | (arr == 255)) / (arr.shape[0] * arr.shape[1]) > 0.6
         else 3
     )
     distance_lookup = calculate_distance_lookups(size, exp)

@@ -85,10 +85,11 @@ cpdef int get_dynamic_threshold(
     cdef cnp.ndarray[cnp.float64_t, ndim=1] mean_kernels = np.mean(all_kernels, axis=(1, 2))
     cdef tuple[int, cnp.ndarray[int, ndim=1]] result = np.histogram(mean_kernels, bins=range(0, 256, 5))
     cdef cnp.ndarray[cnp.uint8_t, ndim=1, cast=True] inflection_points = np.diff(result[0].tolist() + [0, 0]) < 0
-    return (
-        result[1][inflection_points][0] + 1 if np.any(inflection_points) else result[1][0] + 1
-    )
-
+    if np.sum(result[0] > 0) >= 22:
+        return (
+            result[1][inflection_points][0] + 1 if np.any(inflection_points) else result[1][0] + 1
+        )
+    return 2
 
 
 cpdef cnp.ndarray[cnp.uint8_t, ndim=2] fixed_window_outlier_filter(
