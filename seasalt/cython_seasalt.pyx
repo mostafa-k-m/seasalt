@@ -4,7 +4,11 @@ from libc.stdlib cimport malloc, free
 from cpython cimport dict
 
 cpdef dict calculate_distance_lookups(int size, int exp=2):
-    cdef cnp.ndarray[long, ndim=2] all_kernel_positions = np.transpose(np.where(np.ones((size, size)) > 0))
+    cdef cnp.ndarray[long, ndim=2] all_kernel_positions = np.transpose(
+        np.where(
+            np.ones((size, size)) > 0
+        )
+    )
     cdef int center_ix = (size - 1) // 2
     cdef cnp.ndarray[double, ndim=1] distance_weights = (
         1
@@ -44,7 +48,9 @@ cpdef float weighted_mean(
     if num_ixs == 0:
         return np.median(kernel)
 
-    cdef cnp.ndarray[double, ndim=1] distance_weights = np.empty(num_ixs, dtype=np.float64)
+    cdef cnp.ndarray[double, ndim=1] distance_weights = np.empty(
+        num_ixs, dtype=np.float64
+    )
     for i in range(num_ixs):
         distance_weights[i] = distance_lookup[ixs[i, 0]][ixs[i, 1]]
     
@@ -55,39 +61,22 @@ cpdef float weighted_mean(
         weighted_sum / weights_sum if weights_sum > 0 else 0.0
     )
 
-cpdef cnp.ndarray[cnp.uint8_t, ndim=4] get_all_kernels(
-        cnp.ndarray[cnp.uint8_t, ndim=2] arr,
-        int size
-    ):
-    cdef int n = arr.shape[0]
-    cdef int m = arr.shape[1]
-    
-    cdef cnp.ndarray[cnp.uint8_t, ndim=4] result = np.lib.stride_tricks.as_strided(
-        arr,
-        shape=(n - size + 1, m - size + 1, size, size),
-        strides=(
-            arr.strides[0],
-            arr.strides[1],
-            arr.strides[0],
-            arr.strides[1]
-        )
-    )
-    
-    return result.reshape(-1,size,size)
-
-
 cpdef int get_dynamic_threshold(
         cnp.ndarray[cnp.uint8_t, ndim=2] arr,
         int size
     ):
     cdef cnp.ndarray[cnp.uint8_t, ndim=2] arr_copy = np.copy(arr).astype(np.uint8) + 1
-    cdef cnp.ndarray[cnp.uint8_t, ndim=3] all_kernels = get_all_kernels(arr_copy, size)
-    cdef cnp.ndarray[cnp.float64_t, ndim=1] mean_kernels = np.mean(all_kernels, axis=(1, 2))
-    cdef tuple[int, cnp.ndarray[int, ndim=1]] result = np.histogram(mean_kernels, bins=range(0, 256, 5))
-    cdef cnp.ndarray[cnp.uint8_t, ndim=1, cast=True] inflection_points = np.diff(result[0].tolist() + [0, 0]) < 0
+    cdef tuple[int, cnp.ndarray[int, ndim=1]] result = np.histogram(
+        arr, bins=range(0, 256, 5)
+    )
+    cdef cnp.ndarray[cnp.uint8_t, ndim=1, cast=True] inflection_points = np.diff(
+        result[0].tolist() + [0, 0]
+    ) < 0
     if np.sum(result[0] > 0) >= 22:
         return (
-            result[1][inflection_points][0] + 1 if np.any(inflection_points) else result[1][0] + 1
+            result[1][inflection_points][0] + 1
+            if np.any(inflection_points)
+            else result[1][0] + 1
         )
     return 2
 
@@ -99,13 +88,12 @@ cpdef cnp.ndarray[cnp.uint8_t, ndim=2] fixed_window_outlier_filter(
     ):
     assert size % 2 == 1, "Kernel Size Must be an Odd Number"
     cdef int kernel_center = (size - 1) // 2
-    cdef cnp.ndarray[cnp.uint8_t, ndim=2] padded_arr = np.pad(arr, ((kernel_center, kernel_center), (kernel_center, kernel_center)), "edge")
-    cdef int threshold = (
-        np.clip(get_dynamic_threshold(arr, size), 2, 155)
-        if np.sum((arr == 0) | (arr == 255)) / (arr.shape[0] * arr.shape[1])
-        > 0.6
-        else 3
+    cdef cnp.ndarray[cnp.uint8_t, ndim=2] padded_arr = np.pad(
+        arr, 
+        ((kernel_center, kernel_center), (kernel_center, kernel_center)),
+        "edge"
     )
+    cdef int threshold = np.clip(get_dynamic_threshold(arr, size), 2, 155)
     cdef dict distance_lookup = calculate_distance_lookups(size, exp)
     cdef cnp.ndarray[cnp.uint8_t, ndim=2] result = arr.copy()
 
