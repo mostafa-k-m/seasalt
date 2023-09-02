@@ -12,6 +12,10 @@ __pycache__
 
 Presentations
 
+*.png
+*.jpg
+*.jpeg
+*.tiff
 .DS_Store
 
 */.DS_Store
