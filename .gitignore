@@ -16,6 +16,9 @@ Presentations
 *.jpg
 *.jpeg
 *.tiff
+settings.json
+
+
 .DS_Store
 
 */.DS_Store
