@@ -4,28 +4,29 @@ import numpy as np
 from numpy.typing import NDArray
 
 
-def get_all_kernels(arr: NDArray[np.uint8], size: int) -> NDArray[np.uint8]:
-    n, m = arr.shape
-    return np.lib.stride_tricks.as_strided(
-        arr,
-        shape=(n - size + 1, m - size + 1, size, size),
-        strides=arr.strides + arr.strides,
+def image_histogram_equalization(arr):
+    histogram, bins = np.histogram(
+        np.ma.masked_where(
+            arr.flatten(), (arr.flatten() == 0) | (arr.flatten() >= 255)
+        ),
+        256,
+        density=True,
     )
+    hist_cumsum = histogram.cumsum()
+    hist_cumsum = np.ceil(255 * hist_cumsum / hist_cumsum[-1])
+    eq_im = np.interp(arr.flatten(), bins[:-1], hist_cumsum).astype(np.uint8)
+    return eq_im.reshape(arr.shape)
 
 
 def get_dynamic_threshold(arr: NDArray[np.uint8], size: int) -> int:
-    arr = np.copy(arr).astype(np.uint8) + 1  # type: ignore
-    all_kernels = get_all_kernels(arr, size)
-    mean_kernels = np.mean(all_kernels, axis=(1, 2))
-    counts, values = np.histogram(mean_kernels, bins=range(0, 256, 5))
-    if np.sum(counts > 0) >= 20:
-        inflection_points = np.diff(counts.tolist() + [0, 0]) < 0
-        return (
-            values[inflection_points][0] + 1
-            if np.any(inflection_points)
-            else values[0] + 1
-        )
-    return 2
+    arr = (
+        image_histogram_equalization(np.copy(arr)).astype(np.uint8) + 1  # type: ignore
+    )
+    counts, values = np.histogram(arr, bins=range(0, 256, 5))
+    inflection_points = np.diff(counts.tolist() + [0, 0]) < 0
+    return (
+        values[inflection_points][0] + 2 if np.any(inflection_points) else values[0] + 2
+    )
 
 
 def weighted_mean(
@@ -75,11 +76,7 @@ def fixed_window_outlier_filter(
     if not isinstance(arr, np.ndarray):
         arr = np.array(arr)
     padded_arr = np.pad(arr, (int((size - 1) / 2), int((size - 1) / 2)), "edge")
-    threshold = (
-        np.clip(get_dynamic_threshold(arr, size), 2, 155)
-        if np.sum((arr == 0) | (arr == 255)) / (arr.shape[0] * arr.shape[1]) > 0.6
-        else 3
-    )
+    threshold = get_dynamic_threshold(arr, size)
     distance_lookup = calculate_distance_lookups(size, exp)
     for index in np.argwhere(arr + 1 < threshold):
         arr[*index] = weighted_mean(
