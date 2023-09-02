@@ -16,6 +16,8 @@ opencv-python = "^4.8.0.74"
 opencv-contrib-python = "^4.8.0.74"
 ipywidgets = "^8.0.7"
 rich = "^13.4.2"
+cython = "^3.0.0"
+setuptools = "^68.0.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
