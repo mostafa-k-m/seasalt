@@ -2,6 +2,10 @@ from typing import Dict
 
 import numpy as np
 from numpy.typing import NDArray
+from skimage.feature import canny
+from skimage.filters import gaussian
+from skimage.morphology import dilation, remove_small_holes, remove_small_objects
+from skimage.segmentation import chan_vese, find_boundaries
 
 
 def image_histogram_equalization(arr):
@@ -88,3 +92,41 @@ def fixed_window_outlier_filter(
             distance_lookup=distance_lookup,
         )
     return arr
+
+
+def segment(arr):
+    arr_segments = (
+        remove_small_holes(
+            remove_small_objects(chan_vese(arr, mu=0.01), 100, connectivity=2), 100
+        ).astype(np.uint8)
+        + 1
+    )
+    edges = canny(arr_segments / np.max(arr_segments))
+    arr_segments[edges == 1] = arr_segments.max() + 1
+    return arr_segments
+
+
+def iterate(arr, arr_segments, fill_kernel=15, edge_kernel=51):
+    out = np.zeros_like(arr)
+    max_label = np.max(arr_segments)
+    for i in range(1, max_label + 1):
+        correction = fixed_window_outlier_filter(
+            np.ma.masked_where(arr_segments != i, np.copy(arr)).filled(fill_value=0),
+            edge_kernel if i == max_label else fill_kernel,
+        )
+        out[arr_segments == i] = correction[arr_segments == i]
+    return out
+
+
+def apply_transform(seasoned_arr, size):
+    out = fixed_window_outlier_filter(np.copy(seasoned_arr), 9)
+    for _ in range(5):
+        arr_segments = segment(np.array(out))
+        out = iterate(np.array(seasoned_arr), arr_segments, fill_kernel=size)
+    edges = find_boundaries(arr_segments).astype(np.uint8)  # type: ignore
+    dialated_edges = dilation(edges)
+    return np.where(
+        ~(dialated_edges > 0),
+        out,
+        (gaussian(out, sigma=0.5) * 255).astype(np.uint8),  # type: ignore
+    )
