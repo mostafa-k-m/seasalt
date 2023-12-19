@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from numpy.typing import NDArray
+from rich.progress import track
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
@@ -223,8 +224,14 @@ def train_model(
 ) -> None:
     writer = SummaryWriter(log_dir=f".runs/{run_name}")
     model.train()
+    train_error = 0
+    val_error = 0
     for epoch in range(num_epochs):
-        for images, _ in train_dataloader:
+        for i, (images, _) in track(
+            enumerate(train_dataloader),
+            description=f"train_epoch_#{epoch}",
+            total=len(train_dataloader),
+        ):
             targets = torch.clone(images)
             images, _ = noise_adder(images, noise_parameter, noise_type)
             images = images.to(device)
@@ -240,6 +247,4 @@ def train_model(
             val_error = eval_model(
                 model, val_dataloader, noise_type, noise_parameter, device
             )
-            log_progress(
-                writer, train_error, val_error, epoch, num_epochs, run_name, model
-            )
+        log_progress(writer, train_error, val_error, epoch, num_epochs, run_name, model)
