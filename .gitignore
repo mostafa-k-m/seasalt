@@ -1,7 +1,10 @@
 BSDS300-test
 
-cocou-val2017
+data
 
+.runs
+
+models
 __pycache__
 
 *.pdf
@@ -9,6 +12,7 @@ __pycache__
 *.pptx
 
 *.pkl
+*.xlsx
 
 Presentations
 
