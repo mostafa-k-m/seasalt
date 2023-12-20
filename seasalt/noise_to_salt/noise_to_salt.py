@@ -196,8 +196,8 @@ def log_progress(
     run_name: str,
     model: torch.nn.Module,
 ) -> None:
-    writer.add_scalar("validation loss", train_error, epoch)
-    writer.add_scalar("train loss", val_error, epoch)
+    writer.add_scalar("train loss", train_error, epoch)
+    writer.add_scalar("validation loss", val_error, epoch)
     if epoch % 5 == 0:
         logger.info(
             "Epoch %s/%s:\n train loss: %.5f, validation: %.5f",
@@ -254,13 +254,13 @@ def train_model(
             train_loss = criterion(pred_masks, masks)
             train_loss += dice_loss(pred_masks, masks)
             train_loss.backward()
-            # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            optimizer.zero_grad()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
+            optimizer.zero_grad()
 
-        model.eval()
         epoch_val_losses = []
         with torch.no_grad():
+            model.eval()
             for noisy_images, masks in val_dataloader:
                 noisy_images = noisy_images.to(device)
                 masks = masks.to(device)
@@ -270,4 +270,12 @@ def train_model(
                 epoch_val_losses.append(val_loss)
         epoch_valid_loss_value = torch.mean(torch.stack(epoch_val_losses)).item()
         scheduler.step(epoch_valid_loss_value)
-        log_progress(writer, train_loss, val_loss, epoch, num_epochs, run_name, model)
+        log_progress(
+            writer,
+            train_loss,
+            val_loss,
+            epoch,
+            num_epochs,
+            run_name,
+            model,
+        )
