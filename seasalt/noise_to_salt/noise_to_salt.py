@@ -87,10 +87,10 @@ def weighted_mean_conv_rgb(img: NDArray[np.float64], size: int = 3) -> torch.Ten
 
 
 class NoiseDetector(torch.nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, channels=1) -> None:
         super(NoiseDetector, self).__init__()
         self.encoder = torch.nn.Sequential(
-            torch.nn.Conv2d(3, 32, kernel_size=3, padding="same"),
+            torch.nn.Conv2d(channels, 32, kernel_size=3, padding="same"),
             torch.nn.ReLU(),
             torch.nn.BatchNorm2d(32),
             torch.nn.MaxPool2d((2, 2), padding=0),
@@ -115,7 +115,7 @@ class NoiseDetector(torch.nn.Module):
             torch.nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=0),
             torch.nn.ReLU(),
             torch.nn.BatchNorm2d(32),
-            torch.nn.ConvTranspose2d(32, 3, kernel_size=3, stride=1, padding=4),
+            torch.nn.ConvTranspose2d(32, channels, kernel_size=3, stride=1, padding=4),
             torch.nn.Sigmoid(),
         )
 
