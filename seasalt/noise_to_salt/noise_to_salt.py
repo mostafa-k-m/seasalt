@@ -224,14 +224,20 @@ def log_progress_to_console(
         )
 
 
-def log_images_to_tensorboard(model, writer, epoch, masks, pred_masks):
+def log_images_to_tensorboard(model, writer, epoch, noisy_images, masks, pred_masks):
     if epoch % 5 == 0:
+        noisy_images_grid = torchvision.utils.make_grid(noisy_images)
+        writer.add_image("Input Images", noisy_images_grid, epoch)
+        writer.add_graph(model, noisy_images)
         target_grid = torchvision.utils.make_grid(masks)
         writer.add_image("Target", target_grid, epoch)
         writer.add_graph(model, masks)
         pred_grid = torchvision.utils.make_grid(pred_masks)
         writer.add_image("Predicted", pred_grid, epoch)
         writer.add_graph(model, pred_masks)
+        target_grid = torchvision.utils.make_grid(masks)
+        writer.add_image("Target", target_grid, epoch)
+        writer.add_graph(model, masks)
 
 
 def train_model(
@@ -286,7 +292,7 @@ def train_model(
                     "valid loss", val_loss, epoch, len(val_dataloader) * epoch + step
                 )
             log_images_to_tensorboard(
-                model, writer, epoch, masks, pred_masks  # type: ignore
+                model, writer, epoch, noisy_images, masks, pred_masks  # type: ignore
             )
         epoch_train_loss_value = torch.mean(torch.stack(epoch_train_losses)).item()
         epoch_valid_loss_value = torch.mean(torch.stack(epoch_val_losses)).item()
