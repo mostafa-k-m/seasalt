@@ -201,8 +201,7 @@ def dice_loss(
     return 1 - dice.mean()
 
 
-def log_progress_to_tensorboard(
-    writer: SummaryWriter,
+def log_progress_to_console(
     train_error: float,
     val_error: float,
     epoch: int,
@@ -210,8 +209,6 @@ def log_progress_to_tensorboard(
     run_name: str,
     model: torch.nn.Module,
 ) -> None:
-    writer.add_scalar("train loss", train_error, epoch)
-    writer.add_scalar("validation loss", val_error, epoch)
     if epoch % 5 == 0:
         logger.info(
             "Epoch %s/%s:\n train loss: %.5f, validation: %.5f",
@@ -255,7 +252,8 @@ def train_model(
         train_loss = 0
         val_loss = 0
         model.train()
-        for _, (noisy_images, masks) in track(
+        epoch_train_losses = []
+        for step, (noisy_images, masks) in track(
             enumerate(train_dataloader),
             description=f"train_epoch_#{epoch}",
             total=len(train_dataloader),
@@ -266,28 +264,35 @@ def train_model(
             train_loss = criterion(pred_masks, masks)
             train_loss += dice_loss(pred_masks, masks)
             train_loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)  # type: ignore
             optimizer.step()
             optimizer.zero_grad()
+            epoch_train_losses.append(train_loss)
+            writer.add_scalar(
+                "train loss", train_loss, epoch, len(train_dataloader) * epoch + step
+            )
 
         epoch_val_losses = []
         with torch.no_grad():
             model.eval()
-            for noisy_images, masks in val_dataloader:
+            for step, (noisy_images, masks) in enumerate(val_dataloader):
                 noisy_images = noisy_images.to(device)
                 masks = masks.to(device)
                 pred_masks = model(noisy_images)
                 val_loss = criterion(pred_masks, masks)
                 val_loss += dice_loss(pred_masks, masks)
                 epoch_val_losses.append(val_loss)
+                writer.add_scalar(
+                    "valid loss", val_loss, epoch, len(val_dataloader) * epoch + step
+                )
                 if log_images:
                     log_images_to_tensorboard(model, writer, epoch, masks, pred_masks)
+        epoch_train_loss_value = torch.mean(torch.stack(epoch_train_losses)).item()
         epoch_valid_loss_value = torch.mean(torch.stack(epoch_val_losses)).item()
         scheduler.step(epoch_valid_loss_value)
-        log_progress_to_tensorboard(
-            writer,
-            train_loss,
-            val_loss,
+        log_progress_to_console(
+            epoch_train_loss_value,
+            epoch_valid_loss_value,
             epoch,
             num_epochs,
             run_name,
