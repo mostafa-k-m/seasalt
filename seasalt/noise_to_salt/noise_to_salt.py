@@ -5,9 +5,11 @@ from typing import Tuple
 import numpy as np
 import torch
 import torch.nn.functional as F
+import torch.optim as optim
 from numpy.typing import NDArray
 from rich.logging import RichHandler
 from rich.progress import track
+from torch.nn import BCELoss
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
@@ -185,25 +187,6 @@ def _poisson_noise_adder(
     return noisy_images, noise > 0
 
 
-def eval_model(
-    model: torch.nn.Module,
-    dataloader: DataLoader,
-    noise_type: str,
-    noise_parameter: float,
-    device: torch.device,
-) -> float:
-    model.eval()
-    mse = []
-    with torch.no_grad():
-        for images, _ in dataloader:
-            noisy_images, masks = noise_adder(images, noise_parameter, noise_type)
-            images = images.to(device)
-            noisy_images = noisy_images.to(device)
-            preds = model(images)
-            mse.extend(MSE(masks.cpu().detach(), preds.cpu().detach()))
-        return np.array(mse).mean()
-
-
 def log_progress(
     writer: SummaryWriter,
     train_error: float,
@@ -230,24 +213,37 @@ def log_progress(
         )
 
 
+def dice_loss(
+    input: torch.Tensor,
+    target: torch.Tensor,
+    epsilon: float = 1e-6,
+) -> torch.Tensor:
+    inter = 2 * (input * target).sum(dim=(-1, -2, -3))
+    sets_sum = input.sum(dim=(-1, -2, -3)) + target.sum(dim=(-1, -2, -3))
+    sets_sum = torch.where(sets_sum == 0, inter, sets_sum)
+
+    dice = (inter + epsilon) / (sets_sum + epsilon)
+    return 1 - dice.mean()
+
+
 def train_model(
     model: torch.nn.Module,
-    noise_type: str,
-    noise_parameter: float,
-    optimizer: torch.optim.Adam,
-    criterion: torch.nn.Module,
+    learning_rate: float,
     train_dataloader: DataLoader,
     val_dataloader: DataLoader,
     device: torch.device,
     run_name: str,
     num_epochs=100,
 ) -> None:
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "max", patience=5)
+    criterion = BCELoss()
     writer = SummaryWriter(log_dir=f".runs/{run_name}")
-    model.train()
-    train_error = 0
-    val_error = 0
     for epoch in range(num_epochs):
-        for i, (noisy_images, masks) in track(
+        train_loss = 0
+        val_loss = 0
+        model.train()
+        for _, (noisy_images, masks) in track(
             enumerate(train_dataloader),
             description=f"train_epoch_#{epoch}",
             total=len(train_dataloader),
@@ -255,14 +251,23 @@ def train_model(
             noisy_images = noisy_images.to(device)
             masks = masks.to(device)
             pred_masks = model(noisy_images)
-            loss = criterion(pred_masks, masks)
+            train_loss = criterion(pred_masks, masks)
+            train_loss += dice_loss(pred_masks, masks)
+            train_loss.backward()
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.zero_grad()
-            loss.backward()
             optimizer.step()
-            train_error = eval_model(
-                model, train_dataloader, noise_type, noise_parameter, device
-            )
-            val_error = eval_model(
-                model, val_dataloader, noise_type, noise_parameter, device
-            )
-        log_progress(writer, train_error, val_error, epoch, num_epochs, run_name, model)
+
+        model.eval()
+        epoch_val_losses = []
+        with torch.no_grad():
+            for noisy_images, masks in val_dataloader:
+                noisy_images = noisy_images.to(device)
+                masks = masks.to(device)
+                pred_masks = model(noisy_images)
+                val_loss = criterion(pred_masks, masks)
+                val_loss += dice_loss(pred_masks, masks)
+                epoch_val_losses.append(val_loss)
+        epoch_valid_loss_value = torch.mean(torch.stack(epoch_val_losses)).item()
+        scheduler.step(epoch_valid_loss_value)
+        log_progress(writer, train_loss, val_loss, epoch, num_epochs, run_name, model)
