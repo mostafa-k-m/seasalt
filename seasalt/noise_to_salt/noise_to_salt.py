@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
+import torchvision
 from numpy.typing import NDArray
 from rich.logging import RichHandler
 from rich.progress import track
@@ -187,7 +188,20 @@ def _poisson_noise_adder(
     return noisy_images, noise > 0
 
 
-def log_progress(
+def dice_loss(
+    input: torch.Tensor,
+    target: torch.Tensor,
+    epsilon: float = 1e-6,
+) -> torch.Tensor:
+    inter = 2 * (input * target).sum(dim=(-1, -2, -3))
+    sets_sum = input.sum(dim=(-1, -2, -3)) + target.sum(dim=(-1, -2, -3))
+    sets_sum = torch.where(sets_sum == 0, inter, sets_sum)
+
+    dice = (inter + epsilon) / (sets_sum + epsilon)
+    return 1 - dice.mean()
+
+
+def log_progress_to_tensorboard(
     writer: SummaryWriter,
     train_error: float,
     val_error: float,
@@ -213,17 +227,14 @@ def log_progress(
         )
 
 
-def dice_loss(
-    input: torch.Tensor,
-    target: torch.Tensor,
-    epsilon: float = 1e-6,
-) -> torch.Tensor:
-    inter = 2 * (input * target).sum(dim=(-1, -2, -3))
-    sets_sum = input.sum(dim=(-1, -2, -3)) + target.sum(dim=(-1, -2, -3))
-    sets_sum = torch.where(sets_sum == 0, inter, sets_sum)
-
-    dice = (inter + epsilon) / (sets_sum + epsilon)
-    return 1 - dice.mean()
+def log_images_to_tensorboard(model, writer, epoch, masks, pred_masks):
+    if epoch % 5 == 0:
+        target_grid = torchvision.utils.make_grid(masks)
+        writer.add_image("Target", target_grid, 0)
+        writer.add_graph(model, masks)
+        pred_grid = torchvision.utils.make_grid(pred_masks)
+        writer.add_image("Predicted", pred_grid, 0)
+        writer.add_graph(model, pred_masks)
 
 
 def train_model(
@@ -233,7 +244,8 @@ def train_model(
     val_dataloader: DataLoader,
     device: torch.device,
     run_name: str,
-    num_epochs=100,
+    num_epochs: int = 100,
+    log_images: bool = False,
 ) -> None:
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "max", patience=5)
@@ -268,9 +280,11 @@ def train_model(
                 val_loss = criterion(pred_masks, masks)
                 val_loss += dice_loss(pred_masks, masks)
                 epoch_val_losses.append(val_loss)
+                if log_images:
+                    log_images_to_tensorboard(model, writer, epoch, masks, pred_masks)
         epoch_valid_loss_value = torch.mean(torch.stack(epoch_val_losses)).item()
         scheduler.step(epoch_valid_loss_value)
-        log_progress(
+        log_progress_to_tensorboard(
             writer,
             train_loss,
             val_loss,
