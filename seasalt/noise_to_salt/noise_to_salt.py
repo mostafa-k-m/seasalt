@@ -104,7 +104,6 @@ class NoiseDetector(torch.nn.Module):
             torch.nn.MaxPool2d((2, 2), padding=0),
         )
 
-        # # Decoder
         self.decoder = torch.nn.Sequential(
             torch.nn.ConvTranspose2d(128, 128, kernel_size=3, stride=2, padding=0),
             torch.nn.ReLU(),
@@ -138,6 +137,8 @@ def noise_adder(
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     if noise_type == "gaussian":
         noisy_images, masks = _gaussian_noise_adder(images, noise_parameter)
+    elif noise_type == "salt and pepper":
+        noisy_images, masks = _salt_and_pepper_noise_adder(images, noise_parameter)
     elif noise_type == "bernoulli":
         noisy_images, masks = _bernoulli_noise_adder(images, noise_parameter)
     elif noise_type == "poisson":
@@ -153,6 +154,16 @@ def _gaussian_noise_adder(
     noise = torch.normal(0, noise_parameter, images.shape)
     noisy_images = (images + noise).clip(0, 1)
     return noisy_images, noise > 0
+
+
+def _salt_and_pepper_noise_adder(
+    images: torch.Tensor, noise_parameter: float
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    salt_mask = torch.rand(images.shape) < (noise_parameter / 2)
+    images = images.masked_fill(salt_mask, 1.0)
+    pepper_mask = torch.rand(images.shape) < (noise_parameter / 2)
+    images = images.masked_fill(pepper_mask, 0.0)
+    return images, torch.logical_or(salt_mask, pepper_mask)
 
 
 def _bernoulli_noise_adder(
