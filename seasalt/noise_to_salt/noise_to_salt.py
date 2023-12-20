@@ -46,20 +46,17 @@ def calculate_kernel(
     return distance_weights.reshape(size, size)
 
 
-def weighted_mean_conv(img: NDArray[np.float64], size: int = 3) -> torch.Tensor:
+def weighted_mean_conv(img_tensor: torch.Tensor, size: int = 3) -> torch.Tensor:
     kernel = calculate_kernel(size)
-    img_tensor = torch.tensor(img, dtype=torch.float32)
     weighted_average_kernel = torch.tensor(kernel, dtype=torch.float32)
     weighted_average_kernel = weighted_average_kernel / torch.sum(
         weighted_average_kernel
     )
-    img_tensor = img_tensor.unsqueeze(0)
     weighted_average_kernel = weighted_average_kernel.unsqueeze(0).unsqueeze(0)
     result = F.conv2d(
         img_tensor, weighted_average_kernel, stride=1, padding=int((size - 1) / 2)
     )
-    result = result.squeeze()
-    return torch.abs(result - img)
+    return torch.abs(result - img_tensor)
 
 
 def weighted_mean_conv_rgb(img: NDArray[np.float64], size: int = 3) -> torch.Tensor:
@@ -229,9 +226,6 @@ def log_images_to_tensorboard(model, writer, epoch, noisy_images, masks, pred_ma
         noisy_images_grid = torchvision.utils.make_grid(noisy_images)
         writer.add_image("Input Images", noisy_images_grid, epoch)
         writer.add_graph(model, noisy_images)
-        target_grid = torchvision.utils.make_grid(masks)
-        writer.add_image("Target", target_grid, epoch)
-        writer.add_graph(model, masks)
         pred_grid = torchvision.utils.make_grid(pred_masks)
         writer.add_image("Predicted", pred_grid, epoch)
         writer.add_graph(model, pred_masks)
