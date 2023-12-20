@@ -19,7 +19,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)-5s " "[%(filename)s:%(lineno)d] %(message)s",
     datefmt="%y-%m-%d %H:%M:%S",
     level=logging.INFO,
-    handlers=[logging.StreamHandler(), RichHandler()],
+    handlers=[RichHandler()],
 )
 
 logger = logging.getLogger()
