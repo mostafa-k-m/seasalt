@@ -245,7 +245,7 @@ def train_model(
     log_images: bool = False,
 ) -> None:
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "max", patience=5)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5)
     criterion = BCELoss()
     writer = SummaryWriter(log_dir=f".runs/{run_name}")
     for epoch in range(num_epochs):
