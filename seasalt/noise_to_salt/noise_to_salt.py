@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from numpy.typing import NDArray
+from rich.logging import RichHandler
 from rich.progress import track
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
@@ -18,7 +19,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)-5s " "[%(filename)s:%(lineno)d] %(message)s",
     datefmt="%y-%m-%d %H:%M:%S",
     level=logging.INFO,
-    handlers=[logging.StreamHandler()],
+    handlers=[logging.StreamHandler(), RichHandler()],
 )
 
 logger = logging.getLogger()
@@ -42,7 +43,7 @@ def calculate_kernel(
     return distance_weights.reshape(size, size)
 
 
-def weighted_mean_conv(img: NDArray[np.float64], size: int = 27) -> torch.Tensor:
+def weighted_mean_conv(img: NDArray[np.float64], size: int = 3) -> torch.Tensor:
     kernel = calculate_kernel(size)
     img_tensor = torch.tensor(img, dtype=torch.float32)
     weighted_average_kernel = torch.tensor(kernel, dtype=torch.float32)
@@ -58,7 +59,7 @@ def weighted_mean_conv(img: NDArray[np.float64], size: int = 27) -> torch.Tensor
     return torch.abs(result - img)
 
 
-def weighted_mean_conv_rgb(img: NDArray[np.float64], size: int = 27) -> torch.Tensor:
+def weighted_mean_conv_rgb(img: NDArray[np.float64], size: int = 3) -> torch.Tensor:
     kernel = calculate_kernel(size)
     img_tensor = torch.tensor(img, dtype=torch.float32)
     img_tensor = img_tensor.permute(2, 0, 1)  # Change channel order
@@ -89,24 +90,32 @@ class NoiseDetector(torch.nn.Module):
     def __init__(self) -> None:
         super(NoiseDetector, self).__init__()
         self.encoder = torch.nn.Sequential(
-            torch.nn.Conv2d(3, 32, kernel_size=(3, 3), padding="same"),
+            torch.nn.Conv2d(3, 32, kernel_size=3, padding="same"),
             torch.nn.ReLU(),
+            torch.nn.BatchNorm2d(32),
             torch.nn.MaxPool2d((2, 2), padding=0),
-            torch.nn.Conv2d(32, 64, kernel_size=(3, 3), padding="same"),
+            torch.nn.Conv2d(32, 64, kernel_size=3, padding="same"),
             torch.nn.ReLU(),
+            torch.nn.BatchNorm2d(64),
             torch.nn.MaxPool2d((2, 2), padding=0),
-            torch.nn.Conv2d(64, 128, kernel_size=(3, 3), padding="same"),
+            torch.nn.Conv2d(64, 128, kernel_size=3, padding="same"),
             torch.nn.ReLU(),
+            torch.nn.BatchNorm2d(128),
             torch.nn.MaxPool2d((2, 2), padding=0),
         )
+
+        # # Decoder
         self.decoder = torch.nn.Sequential(
-            torch.nn.ConvTranspose2d(128, 128, kernel_size=(3, 3), stride=2, padding=0),
+            torch.nn.ConvTranspose2d(128, 128, kernel_size=3, stride=2, padding=0),
             torch.nn.ReLU(),
-            torch.nn.ConvTranspose2d(128, 64, kernel_size=(3, 3), stride=2, padding=0),
+            torch.nn.BatchNorm2d(128),
+            torch.nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=0),
             torch.nn.ReLU(),
-            torch.nn.ConvTranspose2d(64, 32, kernel_size=(3, 3), stride=2, padding=0),
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=0),
             torch.nn.ReLU(),
-            torch.nn.ConvTranspose2d(32, 3, kernel_size=(3, 3), stride=1, padding=1),
+            torch.nn.BatchNorm2d(32),
+            torch.nn.ConvTranspose2d(32, 3, kernel_size=3, stride=1, padding=4),
             torch.nn.Sigmoid(),
         )
 
@@ -227,17 +236,15 @@ def train_model(
     train_error = 0
     val_error = 0
     for epoch in range(num_epochs):
-        for i, (images, _) in track(
+        for i, (noisy_images, masks) in track(
             enumerate(train_dataloader),
             description=f"train_epoch_#{epoch}",
             total=len(train_dataloader),
         ):
-            targets = torch.clone(images)
-            images, _ = noise_adder(images, noise_parameter, noise_type)
-            images = images.to(device)
-            targets = targets.to(device)
-            preds = model(images)
-            loss = criterion(preds, targets)
+            noisy_images = noisy_images.to(device)
+            masks = masks.to(device)
+            pred_masks = model(noisy_images)
+            loss = criterion(pred_masks, masks)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
