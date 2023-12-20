@@ -28,10 +28,10 @@ logging.basicConfig(
 logger = logging.getLogger()
 
 
-def calculate_kernel(
+def calculate_wa_kernel(
     size: int,
     exp: int = 1,
-) -> NDArray[np.float64]:
+) -> torch.Tensor:
     all_kernel_positions = np.transpose(np.where(np.ones((size, size)) > 0))
     center_ix = int((size - 1) / 2)
     distance_weights = (
@@ -43,41 +43,36 @@ def calculate_kernel(
         )
         ** exp
     )
-    return distance_weights.reshape(size, size)
-
-
-def weighted_mean_conv(img_tensor: torch.Tensor, size: int = 3) -> torch.Tensor:
-    kernel = calculate_kernel(size)
+    kernel = distance_weights.reshape(size, size)
     weighted_average_kernel = torch.tensor(kernel, dtype=torch.float32)
     weighted_average_kernel = weighted_average_kernel / torch.sum(
         weighted_average_kernel
     )
-    weighted_average_kernel = weighted_average_kernel.unsqueeze(0).unsqueeze(0)
+    return weighted_average_kernel.unsqueeze(0).unsqueeze(0)
+
+
+def weighted_mean_conv(img_tensor: torch.Tensor, kernel: torch.Tensor) -> torch.Tensor:
     result = F.conv2d(
-        img_tensor, weighted_average_kernel, stride=1, padding=int((size - 1) / 2)
+        img_tensor, kernel, stride=1, padding=int((kernel.shape[-1] - 1) / 2)
     )
     return torch.abs(result - img_tensor)
 
 
-def weighted_mean_conv_rgb(img: NDArray[np.float64], size: int = 3) -> torch.Tensor:
-    kernel = calculate_kernel(size)
+def weighted_mean_conv_rgb(
+    img: NDArray[np.float64], kernel: torch.Tensor
+) -> torch.Tensor:
     img_tensor = torch.tensor(img, dtype=torch.float32)
     img_tensor = img_tensor.permute(2, 0, 1)  # Change channel order
     result_channels = []
 
     for channel in range(3):
         current_channel = img_tensor[channel, :, :]
-        weighted_average_kernel = torch.tensor(kernel, dtype=torch.float32)
-        weighted_average_kernel = weighted_average_kernel / torch.sum(
-            weighted_average_kernel
-        )
         current_channel = current_channel.unsqueeze(0).unsqueeze(0)
-        weighted_average_kernel = weighted_average_kernel.unsqueeze(0).unsqueeze(0)
         result = F.conv2d(
             current_channel,
-            weighted_average_kernel,
+            kernel,
             stride=1,
-            padding=int((size - 1) / 2),
+            padding=int((kernel.shape[-1] - 1) / 2),
         )
         result_channels.append(result.squeeze())
 
@@ -135,9 +130,9 @@ def MSE(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
 def noise_adder(
     images: torch.Tensor, noise_parameter: float, noise_type: str
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    if noise_type == "gaussian":
+    if noise_type == "gauss":
         noisy_images, masks = _gaussian_noise_adder(images, noise_parameter)
-    elif noise_type == "salt and pepper":
+    elif noise_type == "sap":
         noisy_images, masks = _salt_and_pepper_noise_adder(images, noise_parameter)
     elif noise_type == "bernoulli":
         noisy_images, masks = _bernoulli_noise_adder(images, noise_parameter)
