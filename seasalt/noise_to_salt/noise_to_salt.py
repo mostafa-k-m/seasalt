@@ -10,7 +10,7 @@ import torchvision
 from numpy.typing import NDArray
 from rich.logging import RichHandler
 from rich.progress import track
-from torch.nn import BCELoss
+from torch.nn import BCELoss, MSELoss
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
@@ -139,6 +139,110 @@ class DecoderBlock(torch.nn.Module):
         return conv_out
 
 
+class SeConvBlock(torch.nn.Module):
+    def __init__(self, kernel_size, channels):
+        super(SeConvBlock, self).__init__()
+        self.kernel_size = kernel_size
+        self.channels = channels
+
+        self.image_conv = torch.nn.Conv2d(
+            in_channels=self.channels,
+            out_channels=1,
+            kernel_size=self.kernel_size,
+            stride=1,
+            padding="same",
+            bias=False,
+            groups=self.channels,
+        )
+
+        self.M_hat_conv = torch.nn.Conv2d(
+            in_channels=self.channels,
+            out_channels=1,
+            kernel_size=self.kernel_size,
+            stride=1,
+            padding="same",
+            bias=False,
+            groups=self.channels,
+        )
+
+        self.R_conv = torch.nn.Conv2d(
+            in_channels=self.channels,
+            out_channels=1,
+            kernel_size=self.kernel_size,
+            stride=1,
+            padding="same",
+            bias=False,
+            groups=self.channels,
+        )
+
+    def forward(self, images, noise_mask):
+        # non-noisy pixels map:
+        M = torch.logical_and(noise_mask.bool(), images == 0).float()
+        M_hat = 1 - M
+
+        conv_input = self.image_conv(images)
+        conv_M_hat = self.M_hat_conv(M_hat)
+
+        # find 0 in conv_M_hat and change to 1:
+        change_zero_to_one_conv_M_hat = conv_M_hat + (conv_M_hat == 0).float()
+
+        S = conv_input / change_zero_to_one_conv_M_hat
+
+        R = self.R_conv(M_hat)
+        R = R >= self.kernel_size - 2
+        R = R.float()
+
+        y = S * R * M + images
+
+        return y
+
+
+class ConvBlock(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1):
+        super(ConvBlock, self).__init__()
+
+        self.conv = torch.nn.Sequential(
+            torch.nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding="same",  # Assuming "same" padding
+                bias=False,
+            ),
+            torch.nn.ReLU(),
+            torch.nn.BatchNorm2d(out_channels, momentum=0.1, eps=1e-5),
+        )
+
+    def forward(self, x):
+        return self.conv(x)
+
+
+class OutputBlock(torch.nn.Module):
+    def __init__(self, filters, channels, kernel_size=3, stride=1):
+        super(OutputBlock, self).__init__()
+
+        self.conv = torch.nn.Sequential(
+            torch.nn.Conv2d(
+                filters,
+                channels,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding="same",  # Assuming "same" padding
+                bias=False,
+            ),
+            torch.nn.BatchNorm2d(channels, momentum=0.1, eps=1e-5),
+            torch.nn.ReLU(),
+        )
+
+    def forward(self, noisy_images, seconv_output):
+        x = self.conv(seconv_output)
+        mask = torch.eq(noisy_images, 0).float()
+        x = x * mask
+        outputs = x + noisy_images
+        return outputs
+
+
 class NoiseDetector(torch.nn.Module):
     def __init__(self, channels=1, first_output=64, depth=5) -> None:
         super(NoiseDetector, self).__init__()
@@ -182,6 +286,35 @@ class NoiseDetector(torch.nn.Module):
             x = module(x, before_pool)
 
         return self.output(x)
+
+
+class Desnoiser(torch.nn.Module):
+    def __init__(self, channels=1, filters=64, seconv_depth=5, conv_depth=10) -> None:
+        super(Desnoiser, self).__init__()
+        self.seconv_blocks = torch.nn.ModuleList(
+            [
+                SeConvBlock(kernel_size=7 + 2 * d, channels=channels)
+                for d in range(seconv_depth)
+            ]
+        )
+
+        self.conv_layers = torch.nn.ModuleList(
+            [ConvBlock(channels, filters)]
+            + [ConvBlock(filters, filters) for _ in range(conv_depth - 1)]
+        )
+
+        self.output = OutputBlock(filters, channels)
+
+    def forward(self, noisy_images: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        x = noisy_images
+
+        for module in self.seconv_blocks:
+            x = module(x, mask)
+
+        for i, module in enumerate(self.conv_layers):
+            x = module(x)
+
+        return self.output(noisy_images, x)
 
 
 def PSNR(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
@@ -287,21 +420,15 @@ def log_progress_to_console(
         )
 
 
-def log_images_to_tensorboard(model, writer, epoch, noisy_images, masks, pred_masks):
+def log_images_to_tensorboard(writer, epoch, input_images, target_images, pred_images):
     if epoch % 5 == 0:
-        noisy_images_grid = torchvision.utils.make_grid(noisy_images)
-        writer.add_image("Input Images", noisy_images_grid, epoch)
-        writer.add_graph(model, noisy_images)
-        pred_grid = torchvision.utils.make_grid(pred_masks)
-        writer.add_image("Predicted", pred_grid, epoch)
-        writer.add_graph(model, pred_masks)
-        target_grid = torchvision.utils.make_grid(masks)
-        writer.add_image("Target", target_grid, epoch)
-        writer.add_graph(model, masks)
+        writer.add_images("Input Images", input_images, epoch)
+        writer.add_images("Predicted", pred_images, epoch)
+        writer.add_images("Target", target_images, epoch)
 
 
-def train_model(
-    model: torch.nn.Module,
+def train_noise_detector(
+    model: NoiseDetector,
     learning_rate: float,
     train_dataloader: DataLoader,
     val_dataloader: DataLoader,
@@ -319,7 +446,7 @@ def train_model(
         val_loss = 0
         model.train()
         epoch_train_losses = []
-        for step, (noisy_images, masks) in track(
+        for step, (noisy_images, masks, _) in track(
             enumerate(train_dataloader),
             description=f"train_epoch_#{epoch}",
             total=len(train_dataloader),
@@ -341,7 +468,7 @@ def train_model(
         epoch_val_losses = []
         with torch.no_grad():
             model.eval()
-            for step, (noisy_images, masks) in enumerate(val_dataloader):
+            for step, (noisy_images, masks, _) in enumerate(val_dataloader):
                 noisy_images = noisy_images.to(device)
                 masks = masks.to(device)
                 pred_masks = model(noisy_images)
@@ -351,9 +478,87 @@ def train_model(
                 writer.add_scalar(
                     "valid loss", val_loss, epoch, len(val_dataloader) * epoch + step
                 )
-            log_images_to_tensorboard(
-                model, writer, epoch, noisy_images, masks, pred_masks  # type: ignore
+            if log_images:
+                log_images_to_tensorboard(
+                    writer,
+                    epoch,
+                    noisy_images,  # type: ignore
+                    masks,  # type: ignore
+                    pred_masks,  # type: ignore
+                )
+        epoch_train_loss_value = torch.mean(torch.stack(epoch_train_losses)).item()
+        epoch_valid_loss_value = torch.mean(torch.stack(epoch_val_losses)).item()
+        scheduler.step(epoch_valid_loss_value)
+        log_progress_to_console(
+            epoch_train_loss_value,
+            epoch_valid_loss_value,
+            epoch,
+            num_epochs,
+            run_name,
+            model,
+        )
+
+
+def train_denoiser(
+    model: Desnoiser,
+    learning_rate: float,
+    train_dataloader: DataLoader,
+    val_dataloader: DataLoader,
+    device: torch.device,
+    run_name: str,
+    num_epochs: int = 100,
+    log_images: bool = False,
+) -> None:
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10)
+    criterion = MSELoss()
+    writer = SummaryWriter(log_dir=f".runs/{run_name}")
+    for epoch in range(num_epochs):
+        train_loss = 0
+        val_loss = 0
+        model.train()
+        epoch_train_losses = []
+        for step, (noisy_images, masks, target_images) in track(
+            enumerate(train_dataloader),
+            description=f"train_epoch_#{epoch}",
+            total=len(train_dataloader),
+        ):
+            noisy_images = noisy_images.to(device)
+            noisy_images[masks == 1] = 0
+            masks = masks.to(device)
+            target_images = target_images.to(device)
+            pred_images = model(noisy_images, masks)
+            train_loss = criterion(pred_images, target_images)
+            train_loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+            epoch_train_losses.append(train_loss)
+            writer.add_scalar(
+                "train loss", train_loss, epoch, len(train_dataloader) * epoch + step
             )
+
+        epoch_val_losses = []
+        with torch.no_grad():
+            model.eval()
+            for step, (noisy_images, masks, target_images) in enumerate(val_dataloader):
+                noisy_images = noisy_images.to(device)
+                noisy_images[masks == 1] = 0
+                masks = masks.to(device)
+                target_images = target_images.to(device)
+                pred_images = model(noisy_images, masks)
+                val_loss = criterion(pred_images, target_images)
+                epoch_val_losses.append(val_loss)
+                writer.add_scalar(
+                    "valid loss", val_loss, epoch, len(val_dataloader) * epoch + step
+                )
+            if log_images:
+                log_images_to_tensorboard(
+                    writer,
+                    epoch,
+                    noisy_images,  # type: ignore
+                    target_images,  # type: ignore
+                    pred_images,  # type: ignore
+                )
         epoch_train_loss_value = torch.mean(torch.stack(epoch_train_losses)).item()
         epoch_valid_loss_value = torch.mean(torch.stack(epoch_val_losses)).item()
         scheduler.step(epoch_valid_loss_value)
