@@ -1,4 +1,8 @@
-from .denoise_seconvnet import Desnoiser, GradientVariance
+from .denoise_seconvnet import (
+    Desnoiser,
+    GradientVarianceLoss,
+    MixL1SSIMLoss,
+)
 from .denoise_seconvnet import train as train_denoiser
 from .noise_detector_unet import DiceLoss, NoiseDetector
 from .noise_detector_unet import train as train_noise_detector
@@ -16,7 +20,8 @@ __all__ = [
     "PSNR",
     "SSIM",
     "Desnoiser",
-    "GradientVariance",
+    "GradientVarianceLoss",
+    "MixL1SSIMLoss",
     "train_denoiser",
     "DiceLoss",
     "NoiseDetector",

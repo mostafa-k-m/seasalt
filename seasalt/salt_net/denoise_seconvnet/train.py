@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from ..utils import PSNR, SSIM, log_images_to_tensorboard, log_progress_to_console
-from .loss import GradientVariance
+from .loss import MixL1SSIMLoss
 from .model import Desnoiser
 
 
@@ -22,7 +22,7 @@ def train(
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10)
-    criterion = GradientVariance(device)
+    criterion = MixL1SSIMLoss()
     writer = SummaryWriter(log_dir=f".runs/{run_name}")
     for epoch in range(num_epochs):
         train_loss = 0
@@ -39,9 +39,7 @@ def train(
             masks = masks.to(device)
             target_images = target_images.to(device)
             pred_images = model(noisy_images, masks)
-            train_loss = criterion(
-                pred_images, target_images, channels=noisy_images.shape[1]
-            )
+            train_loss = criterion(pred_images, target_images)
             train_loss.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -59,9 +57,7 @@ def train(
                 masks = masks.to(device)
                 target_images = target_images.to(device)
                 pred_images = model(noisy_images, masks)
-                val_loss = criterion(
-                    pred_images, target_images, channels=noisy_images.shape[1]
-                )
+                val_loss = criterion(pred_images, target_images)
                 epoch_val_losses.append(val_loss)
                 writer.add_scalar(
                     "valid loss", val_loss, epoch, len(val_dataloader) * epoch + step
