@@ -1,1 +1,0 @@
-from seasalt.cython_seasalt import fixed_window_outlier_filter
