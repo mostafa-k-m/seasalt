@@ -193,52 +193,58 @@ def MSE(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
 
 
 def noise_adder(
-    images: torch.Tensor, noise_parameter: float, noise_type: str
+    images: torch.Tensor, noise_parameters: torch.Tensor, noise_type: str
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     if noise_type == "gauss":
-        noisy_images, masks = _gaussian_noise_adder(images, noise_parameter)
+        noisy_images, masks = _gaussian_noise_adder(images, noise_parameters)
     elif noise_type == "sap":
-        noisy_images, masks = _salt_and_pepper_noise_adder(images, noise_parameter)
+        noisy_images, masks = _salt_and_pepper_noise_adder(images, noise_parameters)
     elif noise_type == "bernoulli":
-        noisy_images, masks = _bernoulli_noise_adder(images, noise_parameter)
+        noisy_images, masks = _bernoulli_noise_adder(images, noise_parameters)
     elif noise_type == "poisson":
-        noisy_images, masks = _poisson_noise_adder(images, noise_parameter)
+        noisy_images, masks = _poisson_noise_adder(images, noise_parameters)
     else:
-        noisy_images, masks = _gaussian_noise_adder(images, noise_parameter)
+        noisy_images, masks = _gaussian_noise_adder(images, noise_parameters)
     return noisy_images, masks.float()
 
 
 def _gaussian_noise_adder(
-    images: torch.Tensor, noise_parameter: float
+    images: torch.Tensor, noise_parameters: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    noise = torch.normal(0, noise_parameter, images.shape)
+    noise = torch.normal(0, noise_parameters.median().item(), images.shape)
+    torch.stack(
+        [
+            torch.normal(0, std.item(), images.shape[1:])
+            for std in noise_parameters[:, 0, 0, 0]
+        ]
+    )
     noisy_images = (images + noise).clip(0, 1)
     return noisy_images, noise > 0
 
 
 def _salt_and_pepper_noise_adder(
-    images: torch.Tensor, noise_parameter: float
+    images: torch.Tensor, noise_parameters: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    salt_mask = torch.rand(images.shape) < (noise_parameter / 2)
+    salt_mask = torch.rand(images.shape) < (noise_parameters / 2)
     images = images.masked_fill(salt_mask, 1.0)
-    pepper_mask = torch.rand(images.shape) < (noise_parameter / 2)
+    pepper_mask = torch.rand(images.shape) < (noise_parameters / 2)
     images = images.masked_fill(pepper_mask, 0.0)
     return images, torch.logical_or(salt_mask, pepper_mask)
 
 
 def _bernoulli_noise_adder(
-    images: torch.Tensor, noise_parameter: float
+    images: torch.Tensor, noise_parameters: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    a = noise_parameter * torch.ones(images.shape)
+    a = noise_parameters * torch.ones(images.shape)
     noise = torch.bernoulli(a)
     noisy_images = images * noise
     return noisy_images, noise > 0
 
 
 def _poisson_noise_adder(
-    images: torch.Tensor, noise_parameter: float
+    images: torch.Tensor, noise_parameters: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    a = noise_parameter * torch.ones(images.shape)
+    a = noise_parameters * torch.ones(images.shape)
     p = torch.poisson(a)
     noise = p / p.max()
     noisy_images = (images + noise).clip(0, 1)
