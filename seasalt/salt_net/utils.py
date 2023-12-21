@@ -75,19 +75,37 @@ def weighted_mean_conv_rgb(
 
 
 def PSNR(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-    return -10 * torch.log10(torch.mean((preds - target) ** 2, dim=[1, 2, 3]) + 1e-8)
+    return torch.mean(
+        -10 * torch.log10(torch.mean((preds - target) ** 2, dim=[1, 2, 3]) + 1e-8)
+    )
 
 
 def MSE(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     return torch.mean((preds - target) ** 2, dim=[1, 2, 3])
 
 
+def rgb_to_gray(tensor: torch.Tensor) -> torch.Tensor:
+    return (
+        0.2989 * tensor[:, 0:1, :, :]
+        + 0.5870 * tensor[:, 1:2, :, :]
+        + 0.1140 * tensor[:, 2:, :, :]
+    )
+
+
 def SSIM(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-    pred_batch = preds.to(dtype=torch.uint8).cpu().numpy().transpose((0, 2, 3, 1))
-    target_batch = target.to(dtype=torch.uint8).cpu().numpy().transpose((0, 2, 3, 1))
+    preds = preds * 255
+    target = target * 255
+    if preds.shape[1] == 1:
+        pred_batch = preds.to(dtype=torch.uint8).squeeze().cpu().numpy()
+        target_batch = target.to(dtype=torch.uint8).squeeze().cpu().numpy()
+    elif preds.shape[1] == 3:
+        pred_batch = rgb_to_gray(preds).to(dtype=torch.uint8).squeeze().cpu().numpy()
+        target_batch = rgb_to_gray(target).to(dtype=torch.uint8).squeeze().cpu().numpy()
+    else:
+        raise
     ssim_values = []
     for pred_image, target_image in zip(pred_batch, target_batch):
-        ssim_value, _ = structural_similarity(pred_image, target_image, full=True)
+        ssim_value = structural_similarity(pred_image, target_image)
         ssim_values.append(ssim_value)
     return torch.tensor(ssim_values).mean()
 

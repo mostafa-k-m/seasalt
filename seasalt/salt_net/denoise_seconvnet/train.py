@@ -4,7 +4,7 @@ from rich.progress import track
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
-from ..utils import log_images_to_tensorboard, log_progress_to_console
+from ..utils import PSNR, SSIM, log_images_to_tensorboard, log_progress_to_console
 from .loss import GradientVariance
 from .model import Desnoiser
 
@@ -65,6 +65,18 @@ def train(
                 epoch_val_losses.append(val_loss)
                 writer.add_scalar(
                     "valid loss", val_loss, epoch, len(val_dataloader) * epoch + step
+                )
+                writer.add_scalar(
+                    "SSIM",
+                    SSIM(pred_images, target_images),
+                    epoch,
+                    len(val_dataloader) * epoch + step,
+                )
+                writer.add_scalar(
+                    "PSNR",
+                    PSNR(pred_images, target_images),
+                    epoch,
+                    len(val_dataloader) * epoch + step,
                 )
             if log_images:
                 log_images_to_tensorboard(
