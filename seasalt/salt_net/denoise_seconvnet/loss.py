@@ -10,9 +10,9 @@ class MixL1SSIMLoss(nn.Module):
     # Have to use cuda, otherwise the speed is too slow.
     def __init__(
         self,
-        gaussian_sigmas: List[float] = [0.5, 1.0, 2.0, 4.0, 8.0],
+        gaussian_sigmas: List[float] = [0.0448, 0.2856, 0.3001, 0.2363, 0.1333],
         K: Tuple[float, float] = (0.01, 0.03),
-        alpha: float = 0.985,
+        alpha: float = 0.84,
         channels: int = 1,
     ) -> None:
         super(MixL1SSIMLoss, self).__init__()
@@ -58,8 +58,8 @@ class MixL1SSIMLoss(nn.Module):
             F.conv2d(x * y, g_masks, groups=self.channels, padding=self.pad) - muxy
         )
 
-        ssim_map = (2 * muxy + self.C1) / (mux2 + muy2 + self.C1)  # noqa: E741
-        cs_map = (2 * sigmaxy + self.C2) / (sigmax2 + sigmay2 + self.C2)
+        ssim_map = torch.relu((2 * muxy + self.C1) / (mux2 + muy2 + self.C1))
+        cs_map = torch.relu((2 * sigmaxy + self.C2) / (sigmax2 + sigmay2 + self.C2))
 
         loss_ms_ssim = 1 - ssim_map[:, -3:, :, :].prod(dim=1) * cs_map.prod(dim=1)
 
@@ -71,7 +71,7 @@ class MixL1SSIMLoss(nn.Module):
             padding=self.pad,
         ).mean(1)
 
-        loss_mix = (1 - self.alpha) * loss_ms_ssim + self.alpha * gaussian_l1
+        loss_mix = self.alpha * loss_ms_ssim + (1 - self.alpha) * gaussian_l1
         return 100 * loss_mix.mean()
 
 

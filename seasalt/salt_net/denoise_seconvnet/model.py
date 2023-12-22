@@ -106,11 +106,11 @@ class OutputBlock(torch.nn.Module):
 
 
 class Desnoiser(torch.nn.Module):
-    def __init__(self, channels=1, filters=64, seconv_depth=5, conv_depth=10) -> None:
+    def __init__(self, channels=1, filters=64, seconv_depth=9, conv_depth=20) -> None:
         super(Desnoiser, self).__init__()
         self.seconv_blocks = torch.nn.ModuleList(
             [
-                SeConvBlock(kernel_size=7 + 2 * d, channels=channels)
+                SeConvBlock(kernel_size=3 + 2 * d, channels=channels)
                 for d in range(seconv_depth)
             ]
         )
