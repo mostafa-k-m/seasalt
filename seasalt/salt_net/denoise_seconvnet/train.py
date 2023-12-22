@@ -30,7 +30,7 @@ def train(
 ) -> None:
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5)
     criterion = MixL1SSIMLoss()
     writer = SummaryWriter(log_dir=f".runs/{run_name}")
     for epoch in range(num_epochs):
