@@ -31,15 +31,14 @@ def noise_adder(
 def _gaussian_noise_adder(
     images: torch.Tensor, noise_parameters: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    noise = torch.normal(0, noise_parameters.median().item(), images.shape)
-    torch.stack(
+    noise = torch.stack(
         [
             torch.normal(0, std.item(), images.shape[1:])
             for std in noise_parameters[:, 0, 0, 0]
         ]
     )
     noisy_images = (images + noise).clip(0, 1)
-    return noisy_images, noise > 0
+    return noisy_images, noise != 0
 
 
 def _salt_and_pepper_noise_adder(
@@ -58,7 +57,7 @@ def _bernoulli_noise_adder(
     a = noise_parameters * torch.ones(images.shape)
     noise = torch.bernoulli(a)
     noisy_images = images * noise
-    return noisy_images, noise > 0
+    return noisy_images, noise != 0
 
 
 def _poisson_noise_adder(
@@ -68,4 +67,4 @@ def _poisson_noise_adder(
     p = torch.poisson(a)
     noise = p / p.max()
     noisy_images = (images + noise).clip(0, 1)
-    return noisy_images, noise > 0
+    return noisy_images, noise != 0
