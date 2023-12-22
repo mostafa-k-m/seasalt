@@ -111,10 +111,23 @@ def SSIM(preds: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
 
 
 def log_images_to_tensorboard(writer, epoch, input_images, target_images, pred_images):
-    if epoch % 5 == 0:
-        writer.add_images("Input Images", input_images, epoch)
-        writer.add_images("Predicted", pred_images, epoch)
-        writer.add_images("Target", target_images, epoch)
+    writer.add_images("Input Images", input_images, epoch)
+    writer.add_images("Predicted", pred_images, epoch)
+    writer.add_images("Target", target_images, epoch)
+
+
+def log_validation_to_tensor_board(writer, epoch, val_loss, ssim, psnr):
+    writer.add_scalar("valid loss", val_loss, epoch)
+    writer.add_scalar(
+        "SSIM",
+        ssim,  # type:ignore
+        epoch,
+    )
+    writer.add_scalar(
+        "PSNR",
+        psnr,  # type:ignore
+        epoch,
+    )
 
 
 def log_progress_to_console(
@@ -133,8 +146,10 @@ def log_progress_to_console(
             train_error,
             val_error,
         )
-    if epoch + 1 % 5 == 0:
-        torch.save(
-            model.state_dict(),
-            models_folder.joinpath(f"pytorch_{run_name}_{int(epoch/100):d}.h5"),
-        )
+
+
+def save_model_weights(model, run_name, epoch):
+    torch.save(
+        model.state_dict(),
+        models_folder.joinpath(f"pytorch_{run_name}_{epoch:d}.h5"),
+    )

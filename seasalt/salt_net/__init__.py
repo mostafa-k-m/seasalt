@@ -11,6 +11,7 @@ from .processing import (
     collate_images,
     get_test_dataloader,
     get_train_dataloader,
+    get_tensor_board_dataset,
     noise_adder,
 )
 from .utils import MSE, PSNR, SSIM
@@ -30,5 +31,6 @@ __all__ = [
     "collate_images",
     "get_test_dataloader",
     "get_train_dataloader",
+    "get_tensor_board_dataset",
     "noise_adder",
 ]

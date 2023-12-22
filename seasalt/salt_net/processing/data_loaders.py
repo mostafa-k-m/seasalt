@@ -127,7 +127,7 @@ class AugmentedDataset(datasets.ImageFolder):
 
 
 dataset = AugmentedDataset(root=str(data_folder), transform=transform)
-# dataset = datasets.ImageFolder(root=str(data_folder), transform=transform)
+tensor_board_dataset = datasets.ImageFolder(root=str(data_folder), transform=transform)
 lengths = [round(len(dataset) * 0.8), round(len(dataset) * 0.2)]
 train_dataset, val_dataset = random_split(
     dataset, lengths, torch.Generator().manual_seed(101)
@@ -155,6 +155,22 @@ def get_test_dataloader(
 ) -> DataLoader:
     return DataLoader(
         val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        collate_fn=partial(
+            collate_images,
+            noise_type,
+            min_noise,
+            max_noise,
+        ),
+    )
+
+
+def get_tensor_board_dataset(
+    noise_type: NoiseType, min_noise: float, max_noise: float, batch_size: int
+) -> DataLoader:
+    return DataLoader(
+        tensor_board_dataset,
         batch_size=batch_size,
         shuffle=False,
         collate_fn=partial(

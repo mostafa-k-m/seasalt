@@ -1,10 +1,19 @@
+from typing import Optional
+
 import torch
 import torch.optim as optim
 from rich.progress import track
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
-from ..utils import PSNR, SSIM, log_images_to_tensorboard, log_progress_to_console
+from ..utils import (
+    PSNR,
+    SSIM,
+    log_images_to_tensorboard,
+    log_progress_to_console,
+    log_validation_to_tensor_board,
+    save_model_weights,
+)
 from .loss import MixL1SSIMLoss
 from .model import Desnoiser
 
@@ -17,7 +26,7 @@ def train(
     device: torch.device,
     run_name: str,
     num_epochs: int = 100,
-    log_images: bool = False,
+    tensor_board_dataset: Optional[DataLoader] = None,
 ) -> None:
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -44,11 +53,15 @@ def train(
             optimizer.step()
             optimizer.zero_grad()
             epoch_train_losses.append(train_loss)
-            writer.add_scalar(
-                "train loss", train_loss, epoch, len(train_dataloader) * epoch + step
-            )
-
+        epoch_train_loss_value = torch.mean(torch.stack(epoch_train_losses)).item()
+        writer.add_scalar(
+            "train loss",
+            epoch_train_loss_value,
+            epoch,
+        )
         epoch_val_losses = []
+        epoch_ssim_scores = []
+        epoch_psnr_scores = []
         with torch.no_grad():
             model.eval()
             for step, (noisy_images, masks, target_images) in track(
@@ -63,31 +76,33 @@ def train(
                 pred_images = model(noisy_images, masks)
                 val_loss = criterion(pred_images, target_images)
                 epoch_val_losses.append(val_loss)
-                writer.add_scalar(
-                    "valid loss", val_loss, epoch, len(val_dataloader) * epoch + step
-                )
-                writer.add_scalar(
-                    "SSIM",
-                    SSIM(pred_images, target_images),
-                    epoch,
-                    len(val_dataloader) * epoch + step,
-                )
-                writer.add_scalar(
-                    "PSNR",
-                    PSNR(pred_images, target_images),
-                    epoch,
-                    len(val_dataloader) * epoch + step,
-                )
-            if log_images:
-                log_images_to_tensorboard(
-                    writer,
-                    epoch,
-                    noisy_images,  # type: ignore
-                    target_images,  # type: ignore
-                    pred_images,  # type: ignore
-                )
-        epoch_train_loss_value = torch.mean(torch.stack(epoch_train_losses)).item()
+                epoch_ssim_scores.append(SSIM(pred_images, target_images))
+                epoch_psnr_scores.append(PSNR(pred_images, target_images))
+            if tensor_board_dataset:
+                for tb_noisy_images, tb_masks, tb_target_images in tensor_board_dataset:
+                    tb_noisy_images = tb_noisy_images.to(device)
+                    tb_noisy_images[tb_masks == 1] = 0
+                    masks = tb_masks.to(device)
+                    target_images = tb_target_images.to(device)
+                    tb_pred_images = model(tb_noisy_images, masks)
+                    log_images_to_tensorboard(
+                        writer,
+                        epoch,
+                        tb_noisy_images,
+                        tb_target_images,
+                        tb_pred_images,
+                    )
+                    break
         epoch_valid_loss_value = torch.mean(torch.stack(epoch_val_losses)).item()
+        epoch_ssim_score = torch.mean(torch.stack(epoch_ssim_scores)).item()
+        epoch_psnr_score = torch.mean(torch.stack(epoch_psnr_scores)).item()
+        log_validation_to_tensor_board(
+            writer,
+            epoch,
+            epoch_valid_loss_value,
+            epoch_ssim_score,
+            epoch_psnr_score,
+        )
         scheduler.step(epoch_valid_loss_value)
         log_progress_to_console(
             epoch_train_loss_value,
@@ -97,3 +112,5 @@ def train(
             run_name,
             model,
         )
+        if epoch + 1 % 5 == 0:
+            save_model_weights(model, run_name, epoch)
