@@ -31,7 +31,7 @@ def train(
         epoch_train_losses = []
         for step, (noisy_images, masks, target_images) in track(
             enumerate(train_dataloader),
-            description=f"train_epoch_#{epoch}",
+            description=f"Train Epoch #{epoch}",
             total=len(train_dataloader),
         ):
             noisy_images = noisy_images.to(device)
@@ -51,7 +51,11 @@ def train(
         epoch_val_losses = []
         with torch.no_grad():
             model.eval()
-            for step, (noisy_images, masks, target_images) in enumerate(val_dataloader):
+            for step, (noisy_images, masks, target_images) in track(
+                enumerate(val_dataloader),
+                description=f"Validation Epoch #{epoch+1}",
+                total=len(val_dataloader),
+            ):
                 noisy_images = noisy_images.to(device)
                 noisy_images[masks == 1] = 0
                 masks = masks.to(device)

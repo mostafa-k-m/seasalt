@@ -133,7 +133,7 @@ def log_progress_to_console(
             train_error,
             val_error,
         )
-    if epoch + 1 % 20 == 0:
+    if epoch + 1 % 5 == 0:
         torch.save(
             model.state_dict(),
             models_folder.joinpath(f"pytorch_{run_name}_{int(epoch/100):d}.h5"),
