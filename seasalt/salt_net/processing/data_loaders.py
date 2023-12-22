@@ -11,7 +11,7 @@ from torchvision import datasets, transforms
 
 from .noise_adders import NoiseType, noise_adder
 
-PATCH_SIZE, STRIDE = 40, 10
+PATCH_SIZE, STRIDE = 64, 10
 SCALES = [1, 0.9, 0.8, 0.7]
 BATCH_SIZE = 128
 torch.manual_seed(101)
