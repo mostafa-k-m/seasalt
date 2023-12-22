@@ -4,6 +4,9 @@ from typing import Callable, Dict, List, Tuple
 import numpy as np
 import torch
 
+torch.manual_seed(101)
+np.random.seed(101)
+
 
 class NoiseType(Enum):
     GUASSIAN = 1
@@ -53,11 +56,7 @@ def _gaussian_noise_adder(
         torch.logical_and(
             torch.logical_or(noisy_images == 0, noisy_images == 1),
             ~torch.logical_or(images == 0, images == 1),
-        )
-        # torch.logical_or(
-        #     noise > noise[noise >= 0].quantile(0.1),
-        #     noise < noise[noise < 0].quantile(0.1),
-        # ),
+        ),
     )
 
 
