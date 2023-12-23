@@ -13,6 +13,7 @@ class SeConvBlock(torch.nn.Module):
             kernel_size=self.kernel_size,
             stride=1,
             padding="same",
+            padding_mode="reflect",
             bias=False,
             groups=self.channels,
         )
@@ -23,6 +24,7 @@ class SeConvBlock(torch.nn.Module):
             kernel_size=self.kernel_size,
             stride=1,
             padding="same",
+            padding_mode="reflect",
             bias=False,
             groups=self.channels,
         )
@@ -33,6 +35,7 @@ class SeConvBlock(torch.nn.Module):
             kernel_size=self.kernel_size,
             stride=1,
             padding="same",
+            padding_mode="reflect",
             bias=False,
             groups=self.channels,
         )
@@ -51,6 +54,7 @@ class SeConvBlock(torch.nn.Module):
         S = conv_input / change_zero_to_one_conv_M_hat
 
         R = self.R_conv(M_hat)
+
         R = R >= self.kernel_size - 2
         R = R.float()
 
@@ -106,21 +110,28 @@ class OutputBlock(torch.nn.Module):
 
 
 class Desnoiser(torch.nn.Module):
-    def __init__(self, channels=1, filters=64, seconv_depth=9, conv_depth=20) -> None:
+    def __init__(
+        self, channels=1, seconv_depth=5, conv_depth=8, max_filters=128
+    ) -> None:
         super(Desnoiser, self).__init__()
         self.seconv_blocks = torch.nn.ModuleList(
             [
-                SeConvBlock(kernel_size=3 + 2 * d, channels=channels)
+                SeConvBlock(kernel_size=7 + 2 * d, channels=channels)
                 for d in range(seconv_depth)
             ]
         )
 
         self.conv_layers = torch.nn.ModuleList(
-            [ConvBlock(channels, filters)]
-            + [ConvBlock(filters, filters) for _ in range(conv_depth - 1)]
+            [ConvBlock(channels, 4)]
+            + [
+                ConvBlock(
+                    min(2 ** (p + 2), max_filters), min(2 ** (p + 3), max_filters)
+                )
+                for p in range(conv_depth - 1)
+            ]
         )
 
-        self.output = OutputBlock(filters, channels)
+        self.output = OutputBlock(min(2 ** (conv_depth + 1), max_filters), channels)
 
     def forward(self, noisy_images: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         x = noisy_images
