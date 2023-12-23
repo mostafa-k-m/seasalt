@@ -14,6 +14,8 @@ from ..utils import (
 from .loss import DiceLoss
 from .model import NoiseDetector
 
+torch.manual_seed(101)
+
 
 def train(
     model: NoiseDetector,
@@ -27,7 +29,9 @@ def train(
 ) -> None:
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, patience=5, cooldown=5, min_lr=1e-5
+    )
     criterion = DiceLoss()
     writer = SummaryWriter(log_dir=f".runs/{run_name}")
     for epoch in range(num_epochs):
@@ -37,7 +41,7 @@ def train(
         epoch_train_losses = []
         for step, (noisy_images, masks, _) in track(
             enumerate(train_dataloader),
-            description=f"Train Epoch #{epoch}",
+            description=f"Train Epoch #{epoch+1}",
             total=len(train_dataloader),
         ):
             noisy_images = noisy_images.to(device)
@@ -70,7 +74,10 @@ def train(
                 val_loss = criterion(pred_masks, masks)
                 epoch_val_losses.append(val_loss)
             if tensor_board_dataset:
-                for tb_noisy_images, tb_masks, _ in tensor_board_dataset:
+                tb_ix = torch.randint(0, len(tensor_board_dataset), (1, 1)).item()
+                for ix, (tb_noisy_images, tb_masks, _) in tensor_board_dataset:
+                    if ix != tb_ix:
+                        continue
                     tb_noisy_images = tb_noisy_images.to(device)
                     tb_masks = tb_masks.to(device)
                     tb_pred_masks = model(tb_noisy_images)
@@ -96,5 +103,4 @@ def train(
             run_name,
             model,
         )
-        if epoch + 1 % 5 == 0:
-            save_model_weights(model, run_name, epoch)
+        save_model_weights(model, run_name, epoch)
