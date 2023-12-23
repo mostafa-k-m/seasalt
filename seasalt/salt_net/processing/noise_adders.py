@@ -63,9 +63,14 @@ def _gaussian_noise_adder(
 def _salt_and_pepper_noise_adder(
     images: torch.Tensor, noise_parameters: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    salt_mask = torch.rand(images.shape) < (noise_parameters / 2)
+    noise_parameters = noise_parameters[:, :1, :1, :1]
+    randomness_mask = torch.rand(images.shape)
+    salt_mask = randomness_mask < (noise_parameters / 2)
     images = images.masked_fill(salt_mask, 1.0)
-    pepper_mask = torch.rand(images.shape) < (noise_parameters / 2)
+    pepper_mask = torch.logical_and(
+        randomness_mask >= (noise_parameters / 2),
+        randomness_mask < noise_parameters,
+    )
     images = images.masked_fill(pepper_mask, 0.0)
     return images, torch.logical_or(salt_mask, pepper_mask)
 
