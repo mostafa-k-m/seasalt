@@ -71,7 +71,10 @@ class MixL1SSIMLoss(nn.Module):
             padding=self.pad,
         ).mean(1)
 
-        loss_mix = self.alpha * loss_ms_ssim + (1 - self.alpha) * gaussian_l1
+        loss_mix = (
+            self.alpha * torch.clamp(torch.nan_to_num(loss_ms_ssim), 0, 1)
+            + (1 - self.alpha) * gaussian_l1
+        )
         return 100 * loss_mix.mean()
 
 
