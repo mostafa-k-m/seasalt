@@ -91,4 +91,10 @@ def _poisson_noise_adder(
     p = torch.poisson(a)
     noise = p / p.max()
     noisy_images = (images + noise).clip(0, 1)
-    return noisy_images, noise > 0
+    return (
+        noisy_images,
+        torch.logical_and(
+            torch.logical_or(noisy_images == 0, noisy_images == 1),
+            ~torch.logical_or(images == 0, images == 1),
+        ),
+    )
