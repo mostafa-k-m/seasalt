@@ -87,14 +87,20 @@ def _bernoulli_noise_adder(
 def _poisson_noise_adder(
     images: torch.Tensor, noise_parameters: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    a = noise_parameters * torch.ones(images.shape)
+    a = (
+        noise_parameters[:, 0, 0, 0]
+        .view(-1, 1, 1, 1)
+        .expand(-1, images.shape[1], images.shape[2], images.shape[3])
+    )
     p = torch.poisson(a)
     noise = p / p.max()
     noisy_images = (images + noise).clip(0, 1)
     return (
         noisy_images,
-        torch.logical_and(
-            torch.logical_or(noisy_images == 0, noisy_images == 1),
-            ~torch.logical_or(images == 0, images == 1),
+        noise
+        > (
+            torch.mean(noise, axis=(-1, -2, -3))  # type: ignore
+            .view(-1, 1, 1, 1)
+            .expand(-1, images.shape[1], images.shape[2], images.shape[3])
         ),
     )
