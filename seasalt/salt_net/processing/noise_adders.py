@@ -15,9 +15,7 @@ class NoiseType(Enum):
     POISSON = 4
     RANDOM = 5
 
-    def get_noise_func(
-        self,
-    ) -> Callable:
+    def get_noise_func(self, n_images) -> List[Callable]:
         funcs: Dict[str, List[Callable]] = {
             "GUASSIAN": [_gaussian_noise_adder],
             "SAP": [_salt_and_pepper_noise_adder],
@@ -30,15 +28,24 @@ class NoiseType(Enum):
                 _poisson_noise_adder,
             ],
         }
-        return np.random.choice(funcs[self.name])  # type: ignore
+        return np.random.choice(funcs[self.name], n_images).tolist()  # type: ignore
 
 
 def noise_adder(
     images: torch.Tensor, noise_parameters: torch.Tensor, noise_type: NoiseType
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    noise_func = noise_type.get_noise_func()
-    noisy_images, masks = noise_func(images, noise_parameters)
-    return noisy_images, masks.float()
+    noise_funcs = noise_type.get_noise_func(images.shape[0])
+    noisy_images = []
+    masks = []
+    for i in range(images.shape[0]):
+        noisy_image, mask = noise_funcs[i](
+            images[i : i + 1], noise_parameters[i : i + 1, :, :, :]
+        )
+        noisy_images.append(noisy_image)
+        masks.append(mask.float())
+    return torch.stack(noisy_images).view(*images.shape), torch.stack(masks).view(
+        *images.shape
+    )
 
 
 def _gaussian_noise_adder(
