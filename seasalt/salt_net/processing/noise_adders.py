@@ -78,7 +78,11 @@ def _salt_and_pepper_noise_adder(
 def _bernoulli_noise_adder(
     images: torch.Tensor, noise_parameters: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    a = noise_parameters * torch.ones(images.shape)
+    a = (
+        noise_parameters[:, 0, 0, 0]
+        .view(-1, 1, 1, 1)
+        .expand(-1, images.shape[1], images.shape[2], images.shape[3])
+    )
     noise = torch.bernoulli(a)
     noisy_images = images * noise
     return noisy_images, noise == 0
