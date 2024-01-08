@@ -75,7 +75,9 @@ def train(
                 epoch_val_losses.append(val_loss)
             if tensor_board_dataset:
                 tb_ix = torch.randint(0, len(tensor_board_dataset), (1, 1)).item()
-                for ix, (tb_noisy_images, tb_masks, _) in tensor_board_dataset:
+                for ix, (tb_noisy_images, tb_masks, _) in enumerate(
+                    tensor_board_dataset
+                ):
                     if ix != tb_ix:
                         continue
                     tb_noisy_images = tb_noisy_images.to(device)
