@@ -53,10 +53,10 @@ def _gaussian_noise_adder(
     noisy_images = (images + noise).clip(0, 1)
     return (
         noisy_images,
-        torch.logical_and(
-            torch.logical_or(noisy_images == 0, noisy_images == 1),
-            ~torch.logical_or(images == 0, images == 1),
-        ),
+        torch.abs(noise)
+        > noise_parameters[:, 0, 0, 0]
+        .view(-1, 1, 1, 1)
+        .expand(-1, images.shape[1], images.shape[2], images.shape[3]),
     )
 
 
