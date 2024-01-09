@@ -3,15 +3,30 @@ from typing import Tuple
 import torch
 
 
+class ConvLayer(torch.nn.Module):
+    def __init__(self, in_size, out_size) -> None:
+        super(ConvLayer, self).__init__()
+
+        self.conv = torch.nn.Sequential(
+            torch.nn.Conv2d(in_size, out_size, kernel_size=3, padding="same"),
+            torch.nn.BatchNorm2d(out_size),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(
+                out_size, out_size, kernel_size=3, stride=1, padding="same"
+            ),
+            torch.nn.BatchNorm2d(out_size, momentum=0.1, eps=1e-5),
+            torch.nn.ReLU(),
+        )
+
+    def forward(self, images: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        return self.conv(images)
+
+
 class EncoderBlock(torch.nn.Module):
     def __init__(self, in_size, out_size) -> None:
         super(EncoderBlock, self).__init__()
 
-        self.conv = torch.nn.Sequential(
-            torch.nn.Conv2d(in_size, out_size, kernel_size=3, padding="same"),
-            torch.nn.ReLU(),
-            torch.nn.BatchNorm2d(out_size),
-        )
+        self.conv = ConvLayer(in_size, out_size)
         self.pooling = torch.nn.MaxPool2d((2, 2), padding=0)
 
     def forward(self, images: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -24,11 +39,7 @@ class MiddleBlock(torch.nn.Module):
     def __init__(self, in_size, out_size) -> None:
         super(MiddleBlock, self).__init__()
 
-        self.conv = torch.nn.Sequential(
-            torch.nn.Conv2d(in_size, out_size, kernel_size=3, padding="same"),
-            torch.nn.ReLU(),
-            torch.nn.BatchNorm2d(out_size),
-        )
+        self.conv = ConvLayer(in_size, out_size)
 
     def forward(self, images: torch.Tensor) -> Tuple[torch.Tensor, None]:
         conv_out = self.conv(images)
@@ -43,15 +54,11 @@ class DecoderBlock(torch.nn.Module):
             torch.nn.ConvTranspose2d(
                 in_size, out_size, kernel_size=2, stride=2, padding=0
             ),
-            torch.nn.ReLU(),
             torch.nn.BatchNorm2d(out_size),
+            torch.nn.ReLU(),
         )
 
-        self.conv = torch.nn.Sequential(
-            torch.nn.Conv2d(2 * out_size, out_size, kernel_size=3, padding="same"),
-            torch.nn.ReLU(),
-            torch.nn.BatchNorm2d(out_size),
-        )
+        self.conv = ConvLayer(2 * out_size, out_size)
 
     def forward(
         self, x: torch.Tensor, skipped_x: torch.Tensor
