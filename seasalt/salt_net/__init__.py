@@ -1,3 +1,4 @@
+from .denoise_net import DenoiseNet
 from .denoise_seconvnet import (
     Desnoiser,
     GradientVarianceLoss,
@@ -9,9 +10,9 @@ from .noise_detector_unet import train as train_noise_detector
 from .processing import (
     NoiseType,
     collate_images,
+    get_tensor_board_dataset,
     get_test_dataloader,
     get_train_dataloader,
-    get_tensor_board_dataset,
     noise_adder,
 )
 from .utils import MSE, PSNR, SSIM
@@ -33,4 +34,5 @@ __all__ = [
     "get_train_dataloader",
     "get_tensor_board_dataset",
     "noise_adder",
+    "DenoiseNet",
 ]
