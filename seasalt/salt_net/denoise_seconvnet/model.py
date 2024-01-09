@@ -42,7 +42,7 @@ class SeConvBlock(torch.nn.Module):
 
     def forward(self, images, noise_mask):
         # non-noisy pixels map:
-        M = torch.logical_and(noise_mask.bool(), images == 0).float()
+        M = noise_mask
         M_hat = 1 - M
 
         conv_input = self.image_conv(images)
@@ -76,8 +76,8 @@ class ConvBlock(torch.nn.Module):
                 padding="same",  # Assuming "same" padding
                 bias=False,
             ),
-            torch.nn.ReLU(),
             torch.nn.BatchNorm2d(out_channels, momentum=0.1, eps=1e-5),
+            torch.nn.ReLU(),
         )
 
     def forward(self, x):
@@ -101,9 +101,8 @@ class OutputBlock(torch.nn.Module):
             torch.nn.ReLU(),
         )
 
-    def forward(self, noisy_images, seconv_output):
+    def forward(self, noisy_images, seconv_output, mask):
         x = self.conv(seconv_output)
-        mask = torch.eq(noisy_images, 0).float()
         x = x * mask
         outputs = x + noisy_images
         return outputs
@@ -111,7 +110,7 @@ class OutputBlock(torch.nn.Module):
 
 class Desnoiser(torch.nn.Module):
     def __init__(
-        self, channels=1, seconv_depth=5, conv_depth=8, max_filters=128
+        self, channels=1, seconv_depth=5, conv_depth=10, max_filters=128
     ) -> None:
         super(Desnoiser, self).__init__()
         self.seconv_blocks = torch.nn.ModuleList(
@@ -134,7 +133,10 @@ class Desnoiser(torch.nn.Module):
         self.output = OutputBlock(min(2 ** (conv_depth + 1), max_filters), channels)
 
     def forward(self, noisy_images: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        x = noisy_images
+        mask = mask.float()
+        noisy_clone = noisy_images.clone()
+        noisy_clone[mask == 1] = 0
+        x = noisy_clone
 
         for module in self.seconv_blocks:
             x = module(x, mask)
@@ -142,4 +144,4 @@ class Desnoiser(torch.nn.Module):
         for i, module in enumerate(self.conv_layers):
             x = module(x)
 
-        return self.output(noisy_images, x)
+        return self.output(noisy_clone, x, mask)

@@ -30,9 +30,9 @@ def train(
 ) -> None:
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, patience=5, cooldown=5, min_lr=1e-5
-    )
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+    #     optimizer, patience=5, cooldown=5, min_lr=1e-5
+    # )
     criterion = MixL1SSIMLoss()
     writer = SummaryWriter(log_dir=f".runs/{run_name}")
     for epoch in range(num_epochs):
@@ -46,7 +46,6 @@ def train(
             total=len(train_dataloader),
         ):
             noisy_images = noisy_images.to(device)
-            noisy_images[masks == 1] = 0
             masks = masks.to(device)
             target_images = target_images.to(device)
             pred_images = model(noisy_images, masks)
@@ -72,7 +71,6 @@ def train(
                 total=len(val_dataloader),
             ):
                 noisy_images = noisy_images.to(device)
-                noisy_images[masks == 1] = 0
                 masks = masks.to(device)
                 target_images = target_images.to(device)
                 pred_images = model(noisy_images, masks)
@@ -88,7 +86,6 @@ def train(
                     if ix != tb_ix:
                         continue
                     tb_noisy_images = tb_noisy_images.to(device)
-                    tb_noisy_images[tb_masks == 1] = 0
                     masks = tb_masks.to(device)
                     target_images = tb_target_images.to(device)
                     tb_pred_images = model(tb_noisy_images, masks)
@@ -110,7 +107,7 @@ def train(
             epoch_ssim_score,
             epoch_psnr_score,
         )
-        scheduler.step(epoch_valid_loss_value)
+        # scheduler.step(epoch_valid_loss_value)
         log_progress_to_console(
             epoch_train_loss_value,
             epoch_valid_loss_value,
