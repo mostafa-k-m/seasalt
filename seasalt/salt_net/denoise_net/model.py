@@ -54,11 +54,13 @@ class DenoiseNet(torch.nn.Module):
         enable_seconv=True,
         enable_unet=True,
         enable_fft=True,
+        enable_unet_post_processing=True,
     ) -> None:
         super(DenoiseNet, self).__init__()
         self.enable_seconv = enable_seconv
         self.enable_unet = enable_unet
         self.enable_fft = enable_fft
+        self.enable_unet_post_processing = enable_unet_post_processing
 
         n_outputs = 1
 
@@ -106,6 +108,11 @@ class DenoiseNet(torch.nn.Module):
             + [ConvBlock(min(2 ** (output_cnn_depth - 1), max_filters), channels)]
         )
 
+        if self.enable_unet_post_processing:
+            self.unet_post_processing = AutoEncoder(
+                channels, auto_encoder_first_output, auto_encoder_depth
+            )
+
     def forward(self, noisy_images: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         outputs = [noisy_images]
         if self.enable_unet:
@@ -133,4 +140,6 @@ class DenoiseNet(torch.nn.Module):
         output = torch.cat(outputs, 1)
         for module in self.output_layer:
             output = module(output)
+        if self.enable_unet_post_processing:
+            return self.unet_post_processing(output)
         return output
