@@ -14,6 +14,7 @@ class NoiseType(Enum):
     BERNOULLI = 3
     POISSON = 4
     RANDOM = 5
+    PROBALISTIC = 6
 
     def get_noise_func(self, n_images) -> List[Callable]:
         funcs: Dict[str, List[Callable]] = {
@@ -25,6 +26,10 @@ class NoiseType(Enum):
                 _gaussian_noise_adder,
                 _salt_and_pepper_noise_adder,
                 _bernoulli_noise_adder,
+                _poisson_noise_adder,
+            ],
+            "PROBALISTIC": [
+                _gaussian_noise_adder,
                 _poisson_noise_adder,
             ],
         }
