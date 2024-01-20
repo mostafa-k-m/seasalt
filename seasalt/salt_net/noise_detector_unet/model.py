@@ -3,8 +3,26 @@ from typing import Tuple
 import torch
 
 
+class SqueezeExcitation(torch.nn.Module):
+    def __init__(self, filter_size, ratio):
+        super().__init__()
+        self.avgpool = torch.nn.AdaptiveAvgPool2d(1)
+        self.linear = torch.nn.Sequential(
+            torch.nn.Linear(filter_size, filter_size // ratio),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Linear(filter_size // ratio, filter_size),
+            torch.nn.Sigmoid(),
+        )
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = self.avgpool(x).view(b, c)
+        y = self.linear(y).view(b, c, 1, 1)
+        return x * y.expand_as(x)
+
+
 class ConvLayer(torch.nn.Module):
-    def __init__(self, in_size, out_size) -> None:
+    def __init__(self, in_size, out_size, squeeze_excitation) -> None:
         super(ConvLayer, self).__init__()
 
         self.conv = torch.nn.Sequential(
@@ -18,15 +36,23 @@ class ConvLayer(torch.nn.Module):
             torch.nn.ReLU(),
         )
 
+        if squeeze_excitation:
+            self.squeeze_excitation = SqueezeExcitation(out_size, 8)
+        else:
+            self.squeeze_excitation = None
+
     def forward(self, images: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self.conv(images)
+        conv_out = self.conv(images)
+        if self.squeeze_excitation:
+            conv_out = self.squeeze_excitation(conv_out)
+        return conv_out
 
 
 class EncoderBlock(torch.nn.Module):
-    def __init__(self, in_size, out_size) -> None:
+    def __init__(self, in_size, out_size, squeeze_excitation) -> None:
         super(EncoderBlock, self).__init__()
 
-        self.conv = ConvLayer(in_size, out_size)
+        self.conv = ConvLayer(in_size, out_size, squeeze_excitation)
         self.pooling = torch.nn.MaxPool2d((2, 2), padding=0)
 
     def forward(self, images: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -36,10 +62,10 @@ class EncoderBlock(torch.nn.Module):
 
 
 class MiddleBlock(torch.nn.Module):
-    def __init__(self, in_size, out_size) -> None:
+    def __init__(self, in_size, out_size, squeeze_excitation) -> None:
         super(MiddleBlock, self).__init__()
 
-        self.conv = ConvLayer(in_size, out_size)
+        self.conv = ConvLayer(in_size, out_size, squeeze_excitation)
 
     def forward(self, images: torch.Tensor) -> Tuple[torch.Tensor, None]:
         conv_out = self.conv(images)
@@ -47,7 +73,7 @@ class MiddleBlock(torch.nn.Module):
 
 
 class DecoderBlock(torch.nn.Module):
-    def __init__(self, in_size, out_size) -> None:
+    def __init__(self, in_size, out_size, squeeze_excitation) -> None:
         super(DecoderBlock, self).__init__()
 
         self.t_conv = torch.nn.Sequential(
@@ -58,7 +84,7 @@ class DecoderBlock(torch.nn.Module):
             torch.nn.ReLU(),
         )
 
-        self.conv = ConvLayer(2 * out_size, out_size)
+        self.conv = ConvLayer(2 * out_size, out_size, squeeze_excitation)
 
     def forward(
         self, x: torch.Tensor, skipped_x: torch.Tensor
@@ -69,24 +95,36 @@ class DecoderBlock(torch.nn.Module):
 
 
 class NoiseDetector(torch.nn.Module):
-    def __init__(self, channels=1, first_output=64, depth=5) -> None:
+    def __init__(
+        self, channels=1, first_output=64, depth=5, max_exp=5, squeeze_excitation=False
+    ) -> None:
         super(NoiseDetector, self).__init__()
         self.encoder = torch.nn.ModuleList(
-            [EncoderBlock(channels, first_output)]
+            [EncoderBlock(channels, first_output, squeeze_excitation)]
             + [
-                EncoderBlock(first_output * (2 ** (d - 1)), first_output * (2**d))
+                EncoderBlock(
+                    first_output * (2 ** (min(d - 1, max_exp))),
+                    first_output * (2 ** min(d, max_exp)),
+                    squeeze_excitation,
+                )
                 for d in range(1, depth - 1)
             ]
             + [
                 MiddleBlock(
-                    first_output * (2 ** (depth - 2)), first_output * (2 ** (depth - 1))
+                    first_output * (2 ** (min((depth - 2), max_exp))),
+                    first_output * (2 ** min((depth - 1), max_exp)),
+                    squeeze_excitation,
                 )
             ]
         )
 
         self.decoder = torch.nn.ModuleList(
             [
-                DecoderBlock(first_output * (2**d), first_output * (2 ** (d - 1)))
+                DecoderBlock(
+                    first_output * (2 ** min(d, max_exp)),
+                    first_output * (2 ** (min(d - 1, max_exp))),
+                    squeeze_excitation,
+                )
                 for d in range(1, depth)
             ][::-1]
         )
