@@ -29,9 +29,9 @@ def train(
 ) -> None:
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, patience=5, cooldown=5, min_lr=1e-5
-    )
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+    # optimizer, patience=5, cooldown=5, min_lr=1e-5
+    # )
     criterion = DiceLoss()
     writer = SummaryWriter(log_dir=f".runs/{run_name}")
     for epoch in range(num_epochs):
@@ -49,11 +49,9 @@ def train(
             pred_masks = model(noisy_images)
             train_loss = criterion(pred_masks, masks)
             train_loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)  # type: ignore
             optimizer.step()
             optimizer.zero_grad()
             epoch_train_losses.append(train_loss)
-
         epoch_train_loss_value = torch.mean(torch.stack(epoch_train_losses)).item()
         writer.add_scalar(
             "train loss",
@@ -96,7 +94,7 @@ def train(
             epoch_valid_loss_value,
             epoch,
         )
-        scheduler.step(epoch_valid_loss_value)
+        # scheduler.step(epoch_valid_loss_value)
         log_progress_to_console(
             epoch_train_loss_value,
             epoch_valid_loss_value,
