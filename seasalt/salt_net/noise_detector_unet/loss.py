@@ -19,17 +19,18 @@ class DiceLoss(BCELoss):
         self,
         input: torch.Tensor,
         target: torch.Tensor,
-        epsilon: float = 1e-6,
+        epsilon: float = 1e-5,
     ) -> torch.Tensor:
-        inter = 2 * (input * target).sum(dim=(-1, -2, -3))
-        sets_sum = input.sum(dim=(-1, -2, -3)) + target.sum(dim=(-1, -2, -3))
-        sets_sum = torch.where(sets_sum == 0, inter, sets_sum)
-
-        dice = (inter + epsilon) / (sets_sum + epsilon)
-        return 1 - dice
+        input = torch.sigmoid(input)
+        input = input.view(target.shape[0], -1)
+        target = target.view(target.shape[0], -1)
+        intersection = input * target
+        dice = (2.0 * intersection.sum(1) + epsilon) / (
+            input.sum(1) + target.sum(1) + epsilon
+        )
+        return 1 - dice.sum() / target.shape[0]
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        return (
-            F.binary_cross_entropy(input, target) + self.dice_loss(input, target)
-        ).mean()
-        # return BCELoss.forward(self, input, target) + dice_loss(input, target)
+        return 0.5 * F.binary_cross_entropy(input, target) + self.dice_loss(
+            input, target
+        )
