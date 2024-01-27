@@ -49,10 +49,10 @@ class DenoiseNet(torch.nn.Module):
         auto_encoder_depth=5,
         seconv_depth=7,
         fft_depth=7,
-        output_cnn_depth=23,
+        output_cnn_depth=20,
         max_filters=64,
         enable_seconv=True,
-        enable_unet=True,
+        enable_unet=False,
         enable_fft=True,
         enable_unet_post_processing=True,
     ) -> None:
