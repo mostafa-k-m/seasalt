@@ -43,7 +43,7 @@ class ConvLayer(torch.nn.Module):
 
         if dropout:
             self.dropout = torch.nn.Dropout2d(p=0.2)
-        if dropout:
+        else:
             self.dropout = None
 
     def forward(self, images: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
