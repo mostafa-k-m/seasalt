@@ -46,6 +46,9 @@ def noise_adder(
         noisy_image, mask = noise_funcs[i](
             images[i : i + 1], noise_parameters[i : i + 1, :, :, :]
         )
+        mask = torch.logical_and(
+            mask, torch.abs(noisy_image - images[i : i + 1]) >= 0.05
+        )
         noisy_images.append(noisy_image)
         masks.append(mask.float())
     return torch.stack(noisy_images).view(*images.shape), torch.stack(masks).view(
