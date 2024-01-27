@@ -22,7 +22,7 @@ class SqueezeExcitation(torch.nn.Module):
 
 
 class ConvLayer(torch.nn.Module):
-    def __init__(self, in_size, out_size, squeeze_excitation) -> None:
+    def __init__(self, in_size, out_size, squeeze_excitation, dropout) -> None:
         super(ConvLayer, self).__init__()
 
         self.conv = torch.nn.Sequential(
@@ -41,18 +41,25 @@ class ConvLayer(torch.nn.Module):
         else:
             self.squeeze_excitation = None
 
+        if dropout:
+            self.dropout = torch.nn.Dropout2d(p=0.2)
+        if dropout:
+            self.dropout = None
+
     def forward(self, images: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         conv_out = self.conv(images)
         if self.squeeze_excitation:
             conv_out = self.squeeze_excitation(conv_out)
+        if self.dropout:
+            conv_out = self.dropout(conv_out)
         return conv_out
 
 
 class EncoderBlock(torch.nn.Module):
-    def __init__(self, in_size, out_size, squeeze_excitation) -> None:
+    def __init__(self, in_size, out_size, squeeze_excitation, dropout) -> None:
         super(EncoderBlock, self).__init__()
 
-        self.conv = ConvLayer(in_size, out_size, squeeze_excitation)
+        self.conv = ConvLayer(in_size, out_size, squeeze_excitation, dropout)
         self.pooling = torch.nn.MaxPool2d((2, 2), padding=0)
 
     def forward(self, images: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -62,10 +69,10 @@ class EncoderBlock(torch.nn.Module):
 
 
 class MiddleBlock(torch.nn.Module):
-    def __init__(self, in_size, out_size, squeeze_excitation) -> None:
+    def __init__(self, in_size, out_size, squeeze_excitation, dropout) -> None:
         super(MiddleBlock, self).__init__()
 
-        self.conv = ConvLayer(in_size, out_size, squeeze_excitation)
+        self.conv = ConvLayer(in_size, out_size, squeeze_excitation, dropout)
 
     def forward(self, images: torch.Tensor) -> Tuple[torch.Tensor, None]:
         conv_out = self.conv(images)
@@ -73,7 +80,7 @@ class MiddleBlock(torch.nn.Module):
 
 
 class DecoderBlock(torch.nn.Module):
-    def __init__(self, in_size, out_size, squeeze_excitation) -> None:
+    def __init__(self, in_size, out_size, squeeze_excitation, dropout) -> None:
         super(DecoderBlock, self).__init__()
 
         self.t_conv = torch.nn.Sequential(
@@ -84,7 +91,7 @@ class DecoderBlock(torch.nn.Module):
             torch.nn.ReLU(),
         )
 
-        self.conv = ConvLayer(2 * out_size, out_size, squeeze_excitation)
+        self.conv = ConvLayer(2 * out_size, out_size, squeeze_excitation, dropout)
 
     def forward(
         self, x: torch.Tensor, skipped_x: torch.Tensor
@@ -96,16 +103,23 @@ class DecoderBlock(torch.nn.Module):
 
 class NoiseDetector(torch.nn.Module):
     def __init__(
-        self, channels=1, first_output=64, depth=5, max_exp=5, squeeze_excitation=False
+        self,
+        channels=1,
+        first_output=64,
+        depth=5,
+        max_exp=5,
+        squeeze_excitation=False,
+        dropout=False,
     ) -> None:
         super(NoiseDetector, self).__init__()
         self.encoder = torch.nn.ModuleList(
-            [EncoderBlock(channels, first_output, squeeze_excitation)]
+            [EncoderBlock(channels, first_output, squeeze_excitation, dropout)]
             + [
                 EncoderBlock(
                     first_output * (2 ** (min(d - 1, max_exp))),
                     first_output * (2 ** min(d, max_exp)),
                     squeeze_excitation,
+                    dropout,
                 )
                 for d in range(1, depth - 1)
             ]
@@ -114,6 +128,7 @@ class NoiseDetector(torch.nn.Module):
                     first_output * (2 ** (min((depth - 2), max_exp))),
                     first_output * (2 ** min((depth - 1), max_exp)),
                     squeeze_excitation,
+                    dropout,
                 )
             ]
         )
@@ -124,6 +139,7 @@ class NoiseDetector(torch.nn.Module):
                     first_output * (2 ** min(d, max_exp)),
                     first_output * (2 ** (min(d - 1, max_exp))),
                     squeeze_excitation,
+                    dropout,
                 )
                 for d in range(1, depth)
             ][::-1]
