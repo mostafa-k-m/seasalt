@@ -5,6 +5,8 @@ from .denoise_seconvnet import (
     MixL1SSIMLoss,
 )
 from .denoise_seconvnet import train as train_denoiser
+from .hybrid_model import HybridModel
+from .hybrid_model_train import train as train_hybrid_model
 from .noise_detector_unet import DiceLoss, NoiseDetector
 from .noise_detector_unet import train as train_noise_detector
 from .processing import (
@@ -35,4 +37,6 @@ __all__ = [
     "get_tensor_board_dataset",
     "noise_adder",
     "DenoiseNet",
+    "HybridModel",
+    "train_hybrid_model",
 ]
