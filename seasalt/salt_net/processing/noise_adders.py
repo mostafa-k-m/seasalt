@@ -123,3 +123,16 @@ def _poisson_noise_adder(
             .expand(-1, images.shape[1], images.shape[2], images.shape[3])
         ),
     )
+
+
+def noise_adder_numpy(
+    image: np.ndarray, noise_parameter: float, noise_type: NoiseType
+) -> np.ndarray:
+    image_tensor = torch.tensor(image).unsqueeze(0)
+    noise_parameter_tensor = (
+        torch.tensor(noise_parameter).unsqueeze(0).unsqueeze(2).unsqueeze(3)
+    )
+    noise_func = noise_type.get_noise_func(1)[0]
+    noisy_image_tensor, _ = noise_func(image_tensor, noise_parameter_tensor)
+    noisy_image_numpy = noisy_image_tensor.squeeze(0).numpy()
+    return noisy_image_numpy

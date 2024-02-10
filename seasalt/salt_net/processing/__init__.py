@@ -4,7 +4,7 @@ from .data_loaders import (
     get_test_dataloader,
     get_train_dataloader,
 )
-from .noise_adders import NoiseType, noise_adder
+from .noise_adders import NoiseType, noise_adder, noise_adder_numpy
 
 __all__ = [
     "NoiseType",
@@ -13,4 +13,5 @@ __all__ = [
     "get_tensor_board_dataset",
     "collate_images",
     "noise_adder",
+    "noise_adder_numpy",
 ]
