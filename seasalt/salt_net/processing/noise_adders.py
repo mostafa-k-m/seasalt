@@ -138,4 +138,4 @@ def noise_adder_numpy(
     noise_func = noise_type.get_noise_func(1)[0]
     noisy_image_tensor, _ = noise_func(image_tensor, noise_parameter_tensor)
     noisy_image_numpy = noisy_image_tensor.squeeze(0).numpy()
-    return (noisy_image_numpy * 255).astype(np.uint8)
+    return noisy_image_numpy * 255
