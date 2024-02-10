@@ -9,7 +9,7 @@ denoiser = torch.jit.load(models_folder.joinpath("denoiser.pt"))
 
 
 class SaltNetOneStageHandler:
-    def __init__(self, denoiser_path="denoiser.pt"):
+    def __init__(self, denoiser_path="hybrid.pt"):
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
         # elif torch.backends.mps.is_available():
