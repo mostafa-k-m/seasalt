@@ -17,6 +17,7 @@ from .processing import (
     get_train_dataloader,
     noise_adder,
 )
+from .salt_net_handler import SaltNetOneStageHandler, SaltNetTwoStageHandler
 from .utils import MSE, PSNR, SSIM
 
 __all__ = [
@@ -39,4 +40,6 @@ __all__ = [
     "DenoiseNet",
     "HybridModel",
     "train_hybrid_model",
+    "SaltNetOneStageHandler",
+    "SaltNetTwoStageHandler",
 ]
