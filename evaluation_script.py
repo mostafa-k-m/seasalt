@@ -89,20 +89,21 @@ def run_evaluation_loop(image_datasets, noise_type):
     data_dict_psnr = dict(im_index=[], noise_parameter=[], PSNR=[])
     data_dict_ssim = dict(im_index=[], noise_parameter=[], SSIM=[])
     with Progress() as progress:
+        noise_parameters = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         for ix, image_paths in enumerate(image_datasets):
             task = progress.add_task(
-                f"Running {noise_type} Evalution (Dataset {ix})...",
-                total=len(image_paths) * 10,
+                f"Running {noise_type.name} Evalution (Dataset {ix})...",
+                total=len(image_paths) * len(noise_parameters),
             )
             for p in image_paths:
                 img_name = p.split("/")[-1].split(".")[0]
-                for noise_parameter in [0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+                for noise_parameter in noise_parameters:
                     im = Image.open(p)
                     arr, corrected_img = apply_transformation(
                         im,
                         noise_parameter=noise_parameter,
                         noise_type=noise_type,
-                        save_path=f"{p.split('/')[-2].split('_')[0]}/"
+                        save_path=f"{noise_type.name}/{p.split('/')[-2].split('_')[0]}/"
                         f"{p.split('/')[-1].split('.')[0]}"
                         f"/{int(noise_parameter*100)}",
                     )
@@ -120,7 +121,10 @@ def run_evaluation_loop(image_datasets, noise_type):
                     progress.update(task, advance=1)
             sns.set_theme()
             dataset_save_path = (
-                root_path / eval_exp_name / f'{p.split("/")[-2].split("_")[0]}'
+                root_path
+                / eval_exp_name
+                / noise_type.name
+                / f'{p.split("/")[-2].split("_")[0]}'
             )
             save_agg_results(data_dict_psnr, dataset_save_path, "PSNR")
             save_agg_results(data_dict_ssim, dataset_save_path, "SSIM")
