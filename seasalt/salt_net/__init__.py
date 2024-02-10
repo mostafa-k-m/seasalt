@@ -9,6 +9,11 @@ from .hybrid_model import HybridModel
 from .hybrid_model_train import train as train_hybrid_model
 from .noise_detector_unet import DiceLoss, NoiseDetector
 from .noise_detector_unet import train as train_noise_detector
+from .plotting_utils import (
+    plot_before_and_after,
+    plot_single_image,
+    plot_before_after_and_original,
+)
 from .processing import (
     NoiseType,
     collate_images,
@@ -44,4 +49,7 @@ __all__ = [
     "SaltNetOneStageHandler",
     "SaltNetTwoStageHandler",
     "noise_adder_numpy",
+    "plot_single_image",
+    "plot_before_and_after",
+    "plot_before_after_and_original",
 ]
