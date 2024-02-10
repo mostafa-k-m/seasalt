@@ -118,11 +118,15 @@ def iterate(arr, arr_segments, fill_kernel=15, edge_kernel=51):
     return out
 
 
-def apply_transform(seasoned_arr, size):
+def apply_transform(seasoned_arr, arr, size, segment_image=False):
     out = fixed_window_outlier_filter(np.copy(seasoned_arr), 9)
-    for _ in range(5):
-        arr_segments = segment(np.array(out))
+    if segment_image:
+        arr_segments = segment(arr)
         out = iterate(np.array(seasoned_arr), arr_segments, fill_kernel=size)
+    else:
+        for _ in range(5):
+            arr_segments = segment(np.array(out))
+            out = iterate(np.array(seasoned_arr), arr_segments, fill_kernel=size)
     edges = find_boundaries(arr_segments).astype(np.uint8)  # type: ignore
     dialated_edges = dilation(edges)
     return np.where(
