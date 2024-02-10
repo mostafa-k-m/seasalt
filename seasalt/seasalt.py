@@ -14,7 +14,9 @@ from scipy.signal import medfilt
 warnings.filterwarnings("ignore")
 
 
-def apply_salt_pepper(arr: NDArray[np.uint8], ratio: float = 0.1) -> NDArray[np.uint8]:
+def apply_salt_pepper(
+    arr: NDArray[np.uint8], ratio: float = 0.1, only_peppers=False
+) -> NDArray[np.uint8]:
     flat = arr.flatten()
     tot_number_of_pixels = len(flat)
     number_of_pixels_to_be_replaced = round(tot_number_of_pixels * ratio)
@@ -24,7 +26,12 @@ def apply_salt_pepper(arr: NDArray[np.uint8], ratio: float = 0.1) -> NDArray[np.
         replace=False,
     )
     flat[pixels_to_be_replaced[: round(number_of_pixels_to_be_replaced / 2)]] = 0.0
-    flat[pixels_to_be_replaced[-round(number_of_pixels_to_be_replaced / 2) :]] = 255.0
+    if only_peppers:
+        flat[pixels_to_be_replaced[-round(number_of_pixels_to_be_replaced / 2) :]] = 0.0
+    else:
+        flat[
+            pixels_to_be_replaced[-round(number_of_pixels_to_be_replaced / 2) :]
+        ] = 255.0
     return np.uint8(flat.reshape(arr.shape))  # type: ignore
 
 
@@ -78,11 +85,33 @@ def get_dynamic_threshold(arr: NDArray[np.uint8], size: int) -> int:
     )
 
 
+def weighted_mean(
+    kernel: NDArray[np.uint8], exp: int = 1, threshold: Optional[float] = None
+) -> float:
+    size = kernel.shape[0]
+    center_ix = int((size - 1) / 2)
+    if threshold:
+        selector = kernel + 1 > threshold
+    else:
+        selector = (kernel != 0) & (kernel != 255)
+    ixs = np.transpose(np.where(selector))
+    distance_weights = (
+        1 / (1 + (ixs[:, 0] - center_ix) ** 2 + (ixs[:, 1] - center_ix) ** 2) ** exp
+    )
+    if distance_weights.shape == (0,):
+        return np.median(kernel)  # type: ignore
+    return (
+        np.sum(distance_weights * kernel[selector]) / np.sum(distance_weights)
+        if (np.sum(distance_weights)) > 0
+        else 0
+    )  # type: ignore
+
+
 def fixed_window_outlier_filter(
     arr: NDArray[np.uint8],
     size: int = 3,
     mask: Optional[NDArray[np.bool_]] = None,
-    correction_function: Callable = np.median,
+    correction_function: Callable = weighted_mean,
 ) -> NDArray[np.uint8]:
     assert size % 2 == 1, "Kernel Size Must be an Odd Number"
     if not isinstance(arr, np.ndarray):
@@ -292,28 +321,6 @@ def pipe(
     base = func(corrected_img, size, mask=skeletonized_mask)
     edges = func(corrected_img, size, mask=~skeletonized_mask).astype(np.uint8)
     return np.ma.filled(np.where(base.mask, edges, base))
-
-
-def weighted_mean(
-    kernel: NDArray[np.uint8], exp: int = 1, threshold: Optional[float] = None
-) -> float:
-    size = kernel.shape[0]
-    center_ix = int((size - 1) / 2)
-    if threshold:
-        selector = kernel + 1 > threshold
-    else:
-        selector = (kernel != 0) & (kernel != 255)
-    ixs = np.transpose(np.where(selector))
-    distance_weights = (
-        1 / (1 + (ixs[:, 0] - center_ix) ** 2 + (ixs[:, 1] - center_ix) ** 2) ** exp
-    )
-    if distance_weights.shape == (0,):
-        return np.median(kernel)  # type: ignore
-    return (
-        np.sum(distance_weights * kernel[selector]) / np.sum(distance_weights)
-        if (np.sum(distance_weights)) > 0
-        else 0
-    )  # type: ignore
 
 
 def weighted_median(
