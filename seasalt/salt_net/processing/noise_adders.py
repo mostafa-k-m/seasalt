@@ -96,7 +96,7 @@ def _bernoulli_noise_adder(
         .view(-1, 1, 1, 1)
         .expand(-1, images.shape[1], images.shape[2], images.shape[3])
     )
-    noise = torch.bernoulli(a)
+    noise = torch.bernoulli(1 - a)
     noisy_images = images * noise
     return noisy_images, noise == 0
 
