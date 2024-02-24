@@ -1,7 +1,7 @@
 import torch
 
 from ..denoise_seconvnet import ConvBlock, OutputBlock, SeConvBlock
-from ..noise_detector_unet import NoiseDetector as AutoEncoder
+from ..noise_detector_unet import NoiseDetectorUNet as AutoEncoder
 
 
 class FFTBlock(torch.nn.Module):

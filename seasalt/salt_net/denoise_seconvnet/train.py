@@ -15,11 +15,11 @@ from ..utils import (
     save_model_weights,
 )
 from .loss import MixL1SSIMLoss
-from .model import Desnoiser
+from .model import SeConvDesnoiseNet
 
 
 def train(
-    model: Desnoiser,
+    model: SeConvDesnoiseNet,
     learning_rate: float,
     train_dataloader: DataLoader,
     val_dataloader: DataLoader,

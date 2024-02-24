@@ -2,12 +2,12 @@ from typing import Optional
 
 import torch
 import torch.optim as optim
-from .denoise_seconvnet.loss import MixL1SSIMLoss
-from .denoise_seconvnet.model import Desnoiser
 from rich.progress import track
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
+from .denoise_seconvnet.loss import MixL1SSIMLoss
+from .denoise_seconvnet.model import SeConvDesnoiseNet
 from .utils import (
     PSNR,
     SSIM,
@@ -19,7 +19,7 @@ from .utils import (
 
 
 def train(
-    model: Desnoiser,
+    model: SeConvDesnoiseNet,
     learning_rate: float,
     train_dataloader: DataLoader,
     val_dataloader: DataLoader,

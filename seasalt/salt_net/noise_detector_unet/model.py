@@ -101,7 +101,7 @@ class DecoderBlock(torch.nn.Module):
         return conv_out
 
 
-class NoiseDetector(torch.nn.Module):
+class NoiseDetectorUNet(torch.nn.Module):
     def __init__(
         self,
         channels=1,
@@ -111,7 +111,7 @@ class NoiseDetector(torch.nn.Module):
         squeeze_excitation=False,
         dropout=False,
     ) -> None:
-        super(NoiseDetector, self).__init__()
+        super(NoiseDetectorUNet, self).__init__()
         self.encoder = torch.nn.ModuleList(
             [EncoderBlock(channels, first_output, squeeze_excitation, dropout)]
             + [

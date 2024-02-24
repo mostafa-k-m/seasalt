@@ -1,7 +1,7 @@
 import torch
 
 from .denoise_net import DenoiseNet
-from .denoise_net.model import AutoEncoder as NoiseDetector
+from .denoise_net.model import AutoEncoder as NoiseDetectorUNet
 
 if torch.cuda.is_available():
     device = torch.device("cuda")
@@ -24,7 +24,7 @@ class HybridModel(torch.nn.Module):
         denoiser_model.load_state_dict(
             torch.load(denoiser_weights_path, device),
         )
-        noise_detecor_model = NoiseDetector(squeeze_excitation=True, dropout=True)
+        noise_detecor_model = NoiseDetectorUNet(squeeze_excitation=True, dropout=True)
         noise_detecor_model.load_state_dict(
             torch.load(detector_weights_path, device),
         )
