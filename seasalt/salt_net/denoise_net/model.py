@@ -23,7 +23,7 @@ class FFTBlock(torch.nn.Module):
                 ConvBlock(filters, channels),
             ],
         )
-        self.output_conv = ConvBlock(2 * channels, channels)
+        self.output_conv = ConvBlock(3 * channels, channels)
         self.output_relu = torch.nn.ReLU()
 
     def forward(self, noisy_images):
@@ -31,14 +31,16 @@ class FFTBlock(torch.nn.Module):
         x_1 = torch.cat((fftshifted.real, fftshifted.imag), 1)
         for layer in self.ftt_conv:
             x_1 = layer(x_1)
-        x_2 = noisy_images
+        x_2 = noisy_images.clone()
         for layer in self.conv:
             x_2 = layer(x_2)
         x_1 = torch.fft.irfftn(
             torch.fft.ifftshift(torch.complex(x_1[:, :1, :, :], x_1[:, 1:2, :, :])),
             dim=(-1, -2),
         ).float()
-        return self.output_relu(self.output_conv(torch.cat((x_1, x_2), 1)))
+        return self.output_relu(
+            self.output_conv(torch.cat((x_1, x_2, noisy_images), 1))
+        )
 
 
 class DenoiseNet(torch.nn.Module):
