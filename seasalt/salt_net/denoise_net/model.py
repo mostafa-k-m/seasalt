@@ -71,7 +71,7 @@ class DenoiseNet(torch.nn.Module):
             )
 
         if self.enable_seconv:
-            n_outputs += 1
+            n_outputs += 2
             self.seconv_blocks = torch.nn.ModuleList(
                 [
                     SeConvBlock(kernel_size=7 + 2 * d, channels=channels)
@@ -79,6 +79,18 @@ class DenoiseNet(torch.nn.Module):
                 ]
             )
             self.seconv_post_processing = torch.nn.ModuleList(
+                [
+                    ConvBlock(channels, channels),
+                    OutputBlock(channels, channels),
+                ]
+            )
+            self.anti_seconv_blocks = torch.nn.ModuleList(
+                [
+                    SeConvBlock(kernel_size=7 + 2 * d, channels=channels)
+                    for d in range(seconv_depth)
+                ]
+            )
+            self.anti_seconv_post_processing = torch.nn.ModuleList(
                 [
                     ConvBlock(channels, channels),
                     OutputBlock(channels, channels),
@@ -120,18 +132,30 @@ class DenoiseNet(torch.nn.Module):
             x_unet = self.auto_encoder(x_unet)
             outputs.append(x_unet)
         if self.enable_seconv:
-            mask = mask.float()
-            noisy_clone = noisy_images.clone()
-            noisy_clone[mask == 1] = 0
-            x_seconv = noisy_clone
+            og_mask = mask.clone()
+            og_noisy_img = noisy_images.clone()
+            og_noisy_img[og_mask == 1] = 0
+            x_seconv = og_noisy_img.clone()
             for module in self.seconv_blocks:
-                x_seconv = module(x_seconv, mask)
+                x_seconv = module(x_seconv, og_mask)
             for ix, module in enumerate(self.seconv_post_processing):
                 if ix < len(self.seconv_post_processing) - 1:
                     x_seconv = module(x_seconv)
                 else:
-                    x_seconv = module(noisy_clone, x_seconv, mask)
+                    x_seconv = module(og_noisy_img, x_seconv, og_mask)
             outputs.append(x_seconv)
+            anti_mask = (~mask.bool()).clone().float()
+            anti_noisy_img = noisy_images.clone()
+            anti_noisy_img[anti_mask == 1] = 0
+            x_anti_seconv = anti_noisy_img.clone()
+            for module in self.anti_seconv_blocks:
+                x_anti_seconv = module(x_anti_seconv, anti_mask)
+            for ix, module in enumerate(self.anti_seconv_post_processing):
+                if ix < len(self.anti_seconv_post_processing) - 1:
+                    x_anti_seconv = module(x_anti_seconv)
+                else:
+                    x_anti_seconv = module(anti_noisy_img, x_anti_seconv, anti_mask)
+            outputs.append(x_anti_seconv)
         if self.enable_fft:
             x_fft = noisy_images.clone()
             for module in self.fft_blocks:
