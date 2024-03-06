@@ -1,5 +1,5 @@
 from .loss import GradientVarianceLoss, MixL1SSIMLoss
-from .model import ConvBlock, FFTFormer, OutputBlock, SeConvBlock, SeConvDesnoiseNet
+from .model import ConvBlock, OutputBlock, SeConvBlock, SeConvDesnoiseNet
 from .train import train
 
 __all__ = [
@@ -9,6 +9,5 @@ __all__ = [
     "SeConvBlock",
     "OutputBlock",
     "ConvBlock",
-    "FFTFormer",
     "train",
 ]

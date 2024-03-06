@@ -1,6 +1,6 @@
 import torch
 
-from ..denoise_seconvnet import ConvBlock, FFTFormer, OutputBlock, SeConvBlock
+from ..denoise_seconvnet import ConvBlock, OutputBlock, SeConvBlock
 from ..noise_detector_unet import NoiseDetectorUNet as AutoEncoder
 
 
@@ -123,7 +123,9 @@ class DenoiseNet(torch.nn.Module):
         )
 
         if self.enable_unet_post_processing:
-            self.unet_post_processing = FFTFormer(channels)
+            self.unet_post_processing = AutoEncoder(
+                channels, auto_encoder_first_output, auto_encoder_depth
+            )
 
     def forward(self, noisy_images: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         outputs = [noisy_images]

@@ -1,6 +1,5 @@
 from .denoise_net import ConvBlock, DenoiseNet, FFTBlock, OutputBlock, SeConvBlock
 from .denoise_seconvnet import (
-    FFTFormer,
     GradientVarianceLoss,
     MixL1SSIMLoss,
     SeConvDesnoiseNet,
@@ -40,7 +39,6 @@ __all__ = [
     "SeConvDesnoiseNet",
     "GradientVarianceLoss",
     "MixL1SSIMLoss",
-    "FFTFormer",
     "train_denoiser",
     "DecoderBlock",
     "DiceLoss",
