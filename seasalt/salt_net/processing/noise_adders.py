@@ -66,7 +66,7 @@ def _gaussian_noise_adder(
         ]
     )
     noisy_images = (images + noise).clip(0, 1)
-    noisy_mask = torch.rand(images.shape) < noise_parameters[:, 0, 0, 0]
+    noisy_mask = noise < noise_parameters[:, 0, 0, 0] * 2
     return noisy_images, noisy_mask.float()
 
 
