@@ -19,6 +19,7 @@ class NoiseType(Enum):
     def get_noise_func(self, n_images) -> List[Callable]:
         funcs: Dict[str, List[Callable]] = {
             "GUASSIAN": [_gaussian_noise_adder],
+            "LOWGUASSIAN": [_low_gaussian_noise_adder],
             "SAP": [_salt_and_pepper_noise_adder],
             "BERNOULLI": [_bernoulli_noise_adder],
             "POISSON": [_poisson_noise_adder],
@@ -27,6 +28,7 @@ class NoiseType(Enum):
                 _salt_and_pepper_noise_adder,
                 _bernoulli_noise_adder,
                 _poisson_noise_adder,
+                _low_gaussian_noise_adder,
             ],
             "PROBALISTIC": [
                 _gaussian_noise_adder,
@@ -59,6 +61,22 @@ def noise_adder(
 def _gaussian_noise_adder(
     images: torch.Tensor, noise_parameters: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor]:
+    noise = torch.stack(
+        [
+            torch.normal(0, std.item(), images.shape[1:])
+            for std in noise_parameters[:, 0, 0, 0]
+        ]
+    )
+    noisy_images = (images + noise).clip(0, 1)
+    noisy_mask = noise < noise_parameters[:, 0, 0, 0] * 2
+    return noisy_images, noisy_mask.float()
+
+
+def _low_gaussian_noise_adder(
+    images: torch.Tensor, noise_parameters: torch.Tensor
+) -> Tuple[torch.Tensor, torch.Tensor]:
+
+    noise_parameters = (0.05 - 0.3) * torch.rand(images.shape) + 0.3
     noise = torch.stack(
         [
             torch.normal(0, std.item(), images.shape[1:])
