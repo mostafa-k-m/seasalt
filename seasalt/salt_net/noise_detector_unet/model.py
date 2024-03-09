@@ -93,11 +93,27 @@ class DecoderBlock(torch.nn.Module):
 
         self.conv = ConvLayer(2 * out_size, out_size, squeeze_excitation, dropout)
 
+    def pad_on_upscale(self, x_1, x_2):
+        return torch.nn.functional.pad(
+            x_1,
+            (
+                0,
+                0,
+                max(x_2.shape[2] - x_1.shape[2], 0),
+                max(x_2.shape[3] - x_1.shape[3], 0),
+            ),
+        )
+
     def forward(
         self, x: torch.Tensor, skipped_x: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         x = self.t_conv(x)
-        conv_out = self.conv(torch.cat((x, skipped_x), 1))
+        conv_out = self.conv(
+            torch.cat(
+                (self.pad_on_upscale(x, skipped_x), self.pad_on_upscale(skipped_x, x)),
+                1,
+            )
+        )
         return conv_out
 
 
