@@ -43,7 +43,54 @@ class FFTBlock(torch.nn.Module):
         )
 
 
+class AnisotropicDiffusion(torch.nn.Module):
+    def __init__(self, gamma: float = 0.25, kappa: float = 100):
+        super(AnisotropicDiffusion, self).__init__()
+        self.gamma = torch.nn.Parameter(torch.tensor(gamma, dtype=torch.float32))
+        self.kappa = torch.nn.Parameter(torch.tensor(kappa, dtype=torch.float32))
+        self.conv = torch.nn.Conv2d(
+            in_channels=self.channels,
+            out_channels=1,
+            kernel_size=self.kernel_size,
+            stride=1,
+            padding="same",
+            padding_mode="reflect",
+            bias=False,
+            groups=self.channels,
+        )
+
+    def g(self, x: torch.Tensor) -> torch.Tensor:
+        return 1.0 / (1.0 + (torch.abs((x * x)) / (self.kappa * self.kappa)))
+
+    def c(self, img: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        cv = self.g(
+            torch.mean(torch.abs(img[:, :, 1:, :] - img[:, :, :-1, :]), 1, keepdim=True)
+        )
+        ch = self.g(
+            torch.mean(torch.abs(img[:, :, :, 1:] - img[:, :, :, :-1]), 1, keepdim=True)
+        )
+        return cv, ch
+
+    def diffuse_step(
+        self, cv: torch.Tensor, ch: torch.Tensor, img: torch.Tensor
+    ) -> torch.Tensor:
+        dv = img[:, :, 1:, :] - img[:, :, :-1, :]
+        dh = img[:, :, :, 1:] - img[:, :, :, :-1]
+        tv = self.gamma * cv * dv  # vertical transmissions
+        img[:, :, 1:, :] -= tv
+        img[:, :, :-1, :] += tv
+        th = self.gamma * ch * dh  # horizontal transmissions
+        img[:, :, :, 1:] -= th
+        img[:, :, :, :-1] += th
+        return img
+
+    def forward(self, img: torch.Tensor) -> torch.Tensor:
+        cv, ch = self.c(img)
+        return self.conv(self.diffuse_step(cv, ch, img))
+
+
 class DenoiseNet(torch.nn.Module):
+
     def __init__(
         self,
         channels=1,
@@ -51,17 +98,20 @@ class DenoiseNet(torch.nn.Module):
         auto_encoder_depth=5,
         seconv_depth=7,
         fft_depth=7,
-        output_cnn_depth=20,
+        anisotropi_depth=5,
+        output_cnn_depth=10,
         max_filters=64,
         enable_seconv=True,
         enable_unet=False,
-        enable_fft=True,
+        enable_fft=False,
+        enable_anisotropic=True,
         enable_unet_post_processing=True,
     ) -> None:
         super(DenoiseNet, self).__init__()
         self.enable_seconv = enable_seconv
         self.enable_unet = enable_unet
         self.enable_fft = enable_fft
+        self.enable_anisotropic = enable_anisotropic
         self.enable_unet_post_processing = enable_unet_post_processing
 
         n_outputs = 1
@@ -103,6 +153,12 @@ class DenoiseNet(torch.nn.Module):
             n_outputs += 1
             self.fft_blocks = torch.nn.ModuleList(
                 [FFTBlock(channels, max_filters) for _ in range(fft_depth)]
+            )
+
+        if self.enable_anisotropic:
+            n_outputs += 1
+            self.anisotropic_blocks = torch.nn.ModuleList(
+                [AnisotropicDiffusion() for _ in range(anisotropi_depth)]
             )
 
         start_ix = 0
@@ -163,6 +219,11 @@ class DenoiseNet(torch.nn.Module):
             for module in self.fft_blocks:
                 x_fft = module(x_fft)
             outputs.append(x_fft)
+        if self.enable_anisotropic:
+            x_anisotropic = noisy_images.clone()
+            for module in self.anisotropic_blocks:
+                x_anisotropic = module(x_anisotropic)
+            outputs.append(x_anisotropic)
         output = torch.cat(outputs, 1)
         for module in self.output_layer:
             output = module(output)
