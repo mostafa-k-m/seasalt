@@ -3,6 +3,10 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from seasalt.salt_net import (
+    HybridModel,
+)
+
 root_folder = Path(__file__).parent.parent.parent.resolve()
 models_folder = root_folder.joinpath("models")
 denoiser = torch.jit.load(models_folder.joinpath("denoiser.pt"))
@@ -17,7 +21,15 @@ class SaltNetOneStageHandler:
         else:
             self.device = torch.device("cpu")
 
-        self.denoiser = torch.jit.load(models_folder.joinpath(denoiser_path))
+        # self.denoiser = torch.jit.load(models_folder.joinpath(denoiser_path))
+        self.denoiser = HybridModel(
+            denoiser_weights_path=None,
+            detector_weights_path=None,
+        )
+        self.denoiser.to(self.device)
+        self.denoiser.load_state_dict(
+            torch.load(denoiser_path, self.device),
+        )
         self.denoiser.to(self.device)
         self.denoiser = self.denoiser.eval().float()
 
@@ -38,7 +50,8 @@ class SaltNetOneStageHandler:
         return X
 
     def inference(self, inputs):
-        return self.denoiser(inputs)
+        with torch.no_grad():
+            return self.denoiser(inputs)
 
     def predict(self, data):
         return (
