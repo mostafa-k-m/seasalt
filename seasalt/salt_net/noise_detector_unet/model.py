@@ -98,9 +98,17 @@ class DecoderBlock(torch.nn.Module):
             x_1,
             (
                 0,
+                max(
+                    max(x_2.shape[-1], x_1.shape[-1])
+                    - min(x_2.shape[-1], x_1.shape[-1]),
+                    0,
+                ),
                 0,
-                max(x_2.shape[2] - x_1.shape[2], 0),
-                max(x_2.shape[3] - x_1.shape[3], 0),
+                max(
+                    max(x_2.shape[-2], x_1.shape[-2])
+                    - min(x_2.shape[-2], x_1.shape[-2]),
+                    0,
+                ),
             ),
         )
 
@@ -108,12 +116,9 @@ class DecoderBlock(torch.nn.Module):
         self, x: torch.Tensor, skipped_x: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         x = self.t_conv(x)
-        conv_out = self.conv(
-            torch.cat(
-                (self.pad_on_upscale(x, skipped_x), self.pad_on_upscale(skipped_x, x)),
-                1,
-            )
-        )
+        x = self.pad_on_upscale(x, skipped_x)
+        skipped_x = self.pad_on_upscale(skipped_x, x)
+        conv_out = self.conv(torch.cat((x, skipped_x), 1))
         return conv_out
 
 
