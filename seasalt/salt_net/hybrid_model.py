@@ -15,10 +15,12 @@ class HybridModel(torch.nn.Module):
     def __init__(self, denoiser_weights_path, detector_weights_path):
         super(HybridModel, self).__init__()
         denoiser_model = DenoiseNet(
-            output_cnn_depth=20,
+            output_cnn_depth=10,
             enable_seconv=True,
+            enable_anti_seconv=False,
             enable_unet=False,
-            enable_fft=True,
+            enable_fft=False,
+            enable_anisotropic=True,
             enable_unet_post_processing=True,
         )
         if denoiser_weights_path:
