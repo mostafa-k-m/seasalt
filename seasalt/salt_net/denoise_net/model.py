@@ -1,3 +1,4 @@
+import math
 from typing import Tuple
 
 import torch
@@ -470,7 +471,7 @@ class DenoiseNet(torch.nn.Module):
         enable_unet_post_processing=True,
         num_transformer_blocks=[2, 2, 3],
         num_refinement_blocks=4,
-        chnl_expansion_factor=3,
+        chnl_expansion_factor=2,
     ) -> None:
         super(DenoiseNet, self).__init__()
         self.enable_seconv = enable_seconv
@@ -524,7 +525,7 @@ class DenoiseNet(torch.nn.Module):
             )
 
         if self.enable_anisotropic:
-            n_outputs += 1
+            n_outputs += anisotropi_depth
             self.anisotropic_blocks = torch.nn.ModuleList(
                 [
                     AnisotropicDiffusionBlock(channels=channels, kernel_size=3 + 2 * d)
@@ -533,16 +534,23 @@ class DenoiseNet(torch.nn.Module):
             )
 
         start_ix = 0
-        for start_ix in range(output_cnn_depth):
-            if 2**start_ix > n_outputs * channels:
-                break
+        if 2 ** (output_cnn_depth - 1) > n_outputs * channels:
+            for start_ix in range(output_cnn_depth):
+                if 2**start_ix > n_outputs * channels:
+                    break
+        else:
+            start_ix = math.ceil(math.log2(n_outputs * channels))
 
         self.output_layer = torch.nn.ModuleList(
-            [ConvBlock(n_outputs * channels, 2**start_ix)]
+            [ConvBlock(n_outputs * channels, min(2**start_ix, max_filters))]
             + [
                 ConvBlock(
                     min(2 ** (p + start_ix), max_filters),
-                    min(2 ** (p + start_ix + 1), max_filters),
+                    (
+                        max_filters
+                        if p == output_cnn_depth - 2
+                        else min(2 ** (p + start_ix + 1), max_filters)
+                    ),
                 )
                 for p in range(output_cnn_depth - 1)
             ]
@@ -598,7 +606,7 @@ class DenoiseNet(torch.nn.Module):
             x_anisotropic = noisy_images.clone()
             for module in self.anisotropic_blocks:
                 x_anisotropic = module(x_anisotropic)
-            outputs.append(x_anisotropic)
+                outputs.append(x_anisotropic)
         output = torch.cat(outputs, 1)
         for module in self.output_layer:
             output = module(output)
