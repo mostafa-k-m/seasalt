@@ -443,11 +443,11 @@ class AnisotropicDiffusionBlock(torch.nn.Module):
         dh = self.diff_h(img)
         cv, ch = self.c(dv, dh)
         tv = self.gamma * cv * self.conv_dv(dv)
-        img[:, :, 1:, :] -= tv
-        img[:, :, :-1, :] += tv
+        img = img - torch.nn.functional.pad(tv, (0, 0, 1, 0))
+        img = img + torch.nn.functional.pad(tv, (0, 0, 0, 1))
         th = self.gamma * ch * self.conv_dh(dh)
-        img[:, :, :, 1:] -= th
-        img[:, :, :, :-1] += th
+        img = img - torch.nn.functional.pad(th, (1, 0, 0, 0))
+        img = img + torch.nn.functional.pad(th, (0, 1, 0, 0))
         return img
 
     def forward(self, img: torch.Tensor) -> torch.Tensor:
