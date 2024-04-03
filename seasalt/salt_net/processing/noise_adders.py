@@ -35,7 +35,9 @@ class NoiseType(Enum):
                 _poisson_noise_adder,
             ],
         }
-        return np.random.choice(funcs[self.name], n_images).tolist()  # type: ignore
+        return np.random.choice(  # type: ignore
+            funcs[self.name], n_images, [0.2, 0.2, 0.1, 0.2, 0.3]  # type: ignore
+        ).tolist()
 
 
 def noise_adder(

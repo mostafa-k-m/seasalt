@@ -269,9 +269,6 @@ class FFTFormer(torch.nn.Module):
     ):
         super(FFTFormer, self).__init__()
 
-        self.patch_embed = torch.nn.Conv2d(
-            channels, dim, kernel_size=3, stride=1, padding=1
-        )
         self.encoders = torch.nn.ModuleList(
             [
                 TransformerDownSampleBlock(
@@ -317,8 +314,7 @@ class FFTFormer(torch.nn.Module):
             int(dim), channels, kernel_size=3, stride=1, padding=1
         )
 
-    def forward(self, img):
-        x = self.patch_embed(img.clone())
+    def forward(self, x, img):
         encoder_outputs = []
         for encoder in self.encoders:
             if encoder.downsample:
@@ -459,19 +455,22 @@ class DenoiseNet(torch.nn.Module):
     def __init__(
         self,
         channels=1,
-        auto_encoder_first_output=64,
+        auto_encoder_first_output=48,
         auto_encoder_depth=5,
         seconv_depth=7,
         fft_depth=7,
         anisotropi_depth=5,
         output_cnn_depth=10,
-        max_filters=64,
+        max_filters=48,
         enable_seconv=True,
         enable_anti_seconv=False,
         enable_unet=False,
         enable_fft=False,
         enable_anisotropic=True,
         enable_unet_post_processing=True,
+        num_transformer_blocks=[2, 2, 3],
+        num_refinement_blocks=4,
+        chnl_expansion_factor=3,
     ) -> None:
         super(DenoiseNet, self).__init__()
         self.enable_seconv = enable_seconv
@@ -547,11 +546,16 @@ class DenoiseNet(torch.nn.Module):
                 )
                 for p in range(output_cnn_depth - 1)
             ]
-            + [ConvBlock(min(2 ** (output_cnn_depth - 1), max_filters), channels)]
         )
 
         if self.enable_unet_post_processing:
-            self.unet_post_processing = FFTFormer(channels)
+            self.unet_post_processing = FFTFormer(
+                channels,
+                dim=max_filters,
+                num_blocks=num_transformer_blocks,
+                num_refinement_blocks=num_refinement_blocks,
+                chnl_expansion_factor=chnl_expansion_factor,
+            )
 
     def forward(self, noisy_images: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         outputs = [noisy_images]
@@ -599,5 +603,5 @@ class DenoiseNet(torch.nn.Module):
         for module in self.output_layer:
             output = module(output)
         if self.enable_unet_post_processing:
-            return self.unet_post_processing(output)
+            return self.unet_post_processing(output, noisy_images.clone())
         return output
