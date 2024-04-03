@@ -376,12 +376,25 @@ class FFTBlock(torch.nn.Module):
         )
 
 
+class CalculateDiff(torch.nn.Module):
+    def __init__(self, kernel):
+        super(CalculateDiff, self).__init__()
+        self.kernel = torch.nn.Parameter(
+            torch.tensor(kernel, dtype=torch.float32), requires_grad=False
+        )
+
+    def forward(self, x) -> torch.Tensor:
+        return F.conv2d(x, self.kernel)
+
+
 class AnisotropicDiffusionBlock(torch.nn.Module):
 
     def __init__(self, channels, kernel_size, gamma: float = 0.25, kappa: float = 100):
         super(AnisotropicDiffusionBlock, self).__init__()
         self.channels = channels
         self.kernel_size = kernel_size
+        self.diff_v = CalculateDiff([[[[-1], [1]]]])
+        self.diff_h = CalculateDiff([[[[-1, 1]]]])
         self.gamma = torch.nn.Parameter(torch.tensor(gamma, dtype=torch.float32))
         self.kappa = torch.nn.Parameter(torch.tensor(kappa, dtype=torch.float32))
         self.conv_dv = torch.nn.Conv2d(
@@ -418,20 +431,17 @@ class AnisotropicDiffusionBlock(torch.nn.Module):
     def g(self, x: torch.Tensor) -> torch.Tensor:
         return 1.0 / (1.0 + (torch.abs((x * x)) / (self.kappa * self.kappa)))
 
-    def c(self, img: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        cv = self.g(
-            torch.mean(torch.abs(img[:, :, 1:, :] - img[:, :, :-1, :]), 1, keepdim=True)
-        )
-        ch = self.g(
-            torch.mean(torch.abs(img[:, :, :, 1:] - img[:, :, :, :-1]), 1, keepdim=True)
-        )
+    def c(
+        self, dv: torch.Tensor, dh: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        cv = self.g(torch.mean(torch.abs(dv), 1, keepdim=True))
+        ch = self.g(torch.mean(torch.abs(dh), 1, keepdim=True))
         return cv, ch
 
-    def diffuse_step(
-        self, cv: torch.Tensor, ch: torch.Tensor, img: torch.Tensor
-    ) -> torch.Tensor:
-        dv = img[:, :, 1:, :] - img[:, :, :-1, :]
-        dh = img[:, :, :, 1:] - img[:, :, :, :-1]
+    def diffuse(self, img: torch.Tensor) -> torch.Tensor:
+        dv = self.diff_v(img)
+        dh = self.diff_h(img)
+        cv, ch = self.c(dv, dh)
         tv = self.gamma * cv * self.conv_dv(dv)
         img[:, :, 1:, :] -= tv
         img[:, :, :-1, :] += tv
@@ -441,8 +451,7 @@ class AnisotropicDiffusionBlock(torch.nn.Module):
         return img
 
     def forward(self, img: torch.Tensor) -> torch.Tensor:
-        cv, ch = self.c(img)
-        return self.conv(self.diffuse_step(cv, ch, img))
+        return self.conv(self.diffuse(img))
 
 
 class DenoiseNet(torch.nn.Module):
