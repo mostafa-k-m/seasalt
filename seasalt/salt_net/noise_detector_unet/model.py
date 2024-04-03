@@ -64,8 +64,8 @@ class EncoderBlock(torch.nn.Module):
 
     def forward(self, images: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         conv_out = self.conv(images)
-        pooling_out = self.pooling(conv_out)
-        return pooling_out, conv_out
+        downsampled = self.pooling(conv_out)
+        return downsampled, conv_out
 
 
 class MiddleBlock(torch.nn.Module):
@@ -178,11 +178,11 @@ class NoiseDetectorUNet(torch.nn.Module):
         x = images
 
         for module in self.encoder:
-            x, before_pool = module(x)
-            encoder_outs.append(before_pool)
+            x, downsampled = module(x)
+            encoder_outs.append(downsampled)
 
         for i, module in enumerate(self.decoder):
-            before_pool = encoder_outs[-(i + 2)]
-            x = module(x, before_pool)
+            upsampled = encoder_outs[-(i + 2)]
+            x = module(x, upsampled)
 
         return self.output(x)
