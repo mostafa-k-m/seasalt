@@ -6,7 +6,7 @@ from rich.progress import track
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
-from .denoise_seconvnet.loss import MixL1SSIMLoss
+from .denoise_seconvnet.loss import MixL1SSIMLoss, PSNRLoss
 from .denoise_seconvnet.model import SeConvDesnoiseNet
 from .utils import (
     PSNR,
