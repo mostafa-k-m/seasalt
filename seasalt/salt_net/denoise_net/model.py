@@ -43,14 +43,37 @@ class FFTBlock(torch.nn.Module):
         )
 
 
-class AnisotropicDiffusion(torch.nn.Module):
-    def __init__(self, gamma: float = 0.25, kappa: float = 100):
-        super(AnisotropicDiffusion, self).__init__()
+class AnisotropicDiffusionBlock(torch.nn.Module):
+
+    def __init__(self, channels, kernel_size, gamma: float = 0.25, kappa: float = 100):
+        super(AnisotropicDiffusionBlock, self).__init__()
+        self.channels = channels
+        self.kernel_size = kernel_size
         self.gamma = torch.nn.Parameter(torch.tensor(gamma, dtype=torch.float32))
         self.kappa = torch.nn.Parameter(torch.tensor(kappa, dtype=torch.float32))
+        self.conv_dv = torch.nn.Conv2d(
+            in_channels=self.channels,
+            out_channels=channels,
+            kernel_size=self.kernel_size,
+            stride=1,
+            padding="same",
+            padding_mode="reflect",
+            bias=False,
+            groups=self.channels,
+        )
+        self.conv_dh = torch.nn.Conv2d(
+            in_channels=self.channels,
+            out_channels=channels,
+            kernel_size=self.kernel_size,
+            stride=1,
+            padding="same",
+            padding_mode="reflect",
+            bias=False,
+            groups=self.channels,
+        )
         self.conv = torch.nn.Conv2d(
             in_channels=self.channels,
-            out_channels=1,
+            out_channels=channels,
             kernel_size=self.kernel_size,
             stride=1,
             padding="same",
@@ -76,10 +99,10 @@ class AnisotropicDiffusion(torch.nn.Module):
     ) -> torch.Tensor:
         dv = img[:, :, 1:, :] - img[:, :, :-1, :]
         dh = img[:, :, :, 1:] - img[:, :, :, :-1]
-        tv = self.gamma * cv * dv  # vertical transmissions
+        tv = self.gamma * cv * self.conv_dv(dv)
         img[:, :, 1:, :] -= tv
         img[:, :, :-1, :] += tv
-        th = self.gamma * ch * dh  # horizontal transmissions
+        th = self.gamma * ch * self.conv_dh(dh)
         img[:, :, :, 1:] -= th
         img[:, :, :, :-1] += th
         return img
@@ -102,6 +125,7 @@ class DenoiseNet(torch.nn.Module):
         output_cnn_depth=10,
         max_filters=64,
         enable_seconv=True,
+        enable_anti_seconv=False,
         enable_unet=False,
         enable_fft=False,
         enable_anisotropic=True,
@@ -109,6 +133,7 @@ class DenoiseNet(torch.nn.Module):
     ) -> None:
         super(DenoiseNet, self).__init__()
         self.enable_seconv = enable_seconv
+        self.enable_anti_seconv = enable_anti_seconv
         self.enable_unet = enable_unet
         self.enable_fft = enable_fft
         self.enable_anisotropic = enable_anisotropic
@@ -123,7 +148,7 @@ class DenoiseNet(torch.nn.Module):
             )
 
         if self.enable_seconv:
-            n_outputs += 2
+            n_outputs += 1
             self.seconv_blocks = torch.nn.ModuleList(
                 [
                     SeConvBlock(kernel_size=7 + 2 * d, channels=channels)
@@ -136,6 +161,8 @@ class DenoiseNet(torch.nn.Module):
                     OutputBlock(channels, channels),
                 ]
             )
+        if self.enable_anti_seconv:
+            n_outputs += 1
             self.anti_seconv_blocks = torch.nn.ModuleList(
                 [
                     SeConvBlock(kernel_size=7 + 2 * d, channels=channels)
@@ -158,7 +185,10 @@ class DenoiseNet(torch.nn.Module):
         if self.enable_anisotropic:
             n_outputs += 1
             self.anisotropic_blocks = torch.nn.ModuleList(
-                [AnisotropicDiffusion() for _ in range(anisotropi_depth)]
+                [
+                    AnisotropicDiffusionBlock(channels=channels, kernel_size=3 + 2 * d)
+                    for d in range(anisotropi_depth)
+                ]
             )
 
         start_ix = 0
@@ -202,6 +232,7 @@ class DenoiseNet(torch.nn.Module):
                 else:
                     x_seconv = module(og_noisy_img, x_seconv, og_mask)
             outputs.append(x_seconv)
+        if self.enable_anti_seconv:
             anti_mask = (~mask.bool()).clone().float()
             anti_noisy_img = noisy_images.clone()
             anti_noisy_img[anti_mask == 1] = 0
