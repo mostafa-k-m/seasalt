@@ -116,7 +116,7 @@ def log_images_to_tensorboard(writer, epoch, input_images, target_images, pred_i
     writer.add_images("Target", target_images, epoch)
 
 
-def log_validation_to_tensor_board(writer, epoch, val_loss, ssim, psnr):
+def log_test_to_tensor_board(writer, epoch, val_loss, ssim, psnr):
     writer.add_scalar("valid loss", val_loss, epoch)
     writer.add_scalar(
         "SSIM",
@@ -148,8 +148,11 @@ def log_progress_to_console(
         )
 
 
-def save_model_weights(model, run_name, epoch):
+def save_model_weights(model, train_dataloader, run_name, epoch):
     torch.save(
         model.state_dict(),
         models_folder.joinpath(f"pytorch_{run_name}_{epoch:d}.h5"),
     )
+    if epoch % 25 == 0:
+        traced_model = torch.jit.trace(model, next(iter(train_dataloader)))
+        traced_model.save(f"pytorch_{run_name}_{epoch:d}.pt")  # type: ignore

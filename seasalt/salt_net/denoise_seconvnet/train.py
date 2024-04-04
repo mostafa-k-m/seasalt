@@ -11,7 +11,7 @@ from ..utils import (
     SSIM,
     log_images_to_tensorboard,
     log_progress_to_console,
-    log_validation_to_tensor_board,
+    log_test_to_tensor_board,
     save_model_weights,
 )
 from .loss import MixL1SSIMLoss
@@ -100,7 +100,7 @@ def train(
         epoch_valid_loss_value = torch.mean(torch.stack(epoch_val_losses)).item()
         epoch_ssim_score = torch.mean(torch.stack(epoch_ssim_scores)).item()
         epoch_psnr_score = torch.mean(torch.stack(epoch_psnr_scores)).item()
-        log_validation_to_tensor_board(
+        log_test_to_tensor_board(
             writer,
             epoch,
             epoch_valid_loss_value,
@@ -116,4 +116,4 @@ def train(
             run_name,
             model,
         )
-        save_model_weights(model, run_name, epoch)
+        save_model_weights(model, train_dataloader, run_name, epoch)

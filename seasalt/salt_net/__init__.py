@@ -13,7 +13,7 @@ from .denoise_seconvnet import (
 )
 from .denoise_seconvnet import train as train_denoiser
 from .hybrid_model import HybridModel
-from .hybrid_model_train import train as train_hybrid_model
+from .hybrid_model_train import train_loop as train_hybrid_model
 from .noise_detector_unet import (
     DecoderBlock,
     DiceLoss,
