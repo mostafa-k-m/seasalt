@@ -572,20 +572,19 @@ class DenoiseNet(torch.nn.Module):
             x_unet = self.auto_encoder(x_unet)
             outputs.append(x_unet)
         if self.enable_seconv:
-            og_mask = mask.clone()
             og_noisy_img = noisy_images.clone()
-            og_noisy_img[og_mask == 1] = 0
+            og_noisy_img[mask == 1] = 0
             x_seconv = og_noisy_img.clone()
             for module in self.seconv_blocks:
-                x_seconv = module(x_seconv, og_mask)
+                x_seconv = module(x_seconv, mask)
             for ix, module in enumerate(self.seconv_post_processing):
                 if ix < len(self.seconv_post_processing) - 1:
                     x_seconv = module(x_seconv)
                 else:
-                    x_seconv = module(og_noisy_img, x_seconv, og_mask)
+                    x_seconv = module(og_noisy_img, x_seconv, mask)
             outputs.append(x_seconv)
         if self.enable_anti_seconv:
-            anti_mask = (~mask.bool()).clone().float()
+            anti_mask = (~mask.bool()).float()
             anti_noisy_img = noisy_images.clone()
             anti_noisy_img[anti_mask == 1] = 0
             x_anti_seconv = anti_noisy_img.clone()
@@ -611,5 +610,5 @@ class DenoiseNet(torch.nn.Module):
         for module in self.output_layer:
             output = module(output)
         if self.enable_unet_post_processing:
-            return self.unet_post_processing(output, noisy_images.clone())
+            return self.unet_post_processing(output, noisy_images)
         return output
