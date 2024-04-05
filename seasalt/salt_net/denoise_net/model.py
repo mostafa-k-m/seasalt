@@ -5,333 +5,7 @@ import torch
 import torch.nn.functional as F
 
 from ..denoise_seconvnet import ConvBlock, OutputBlock, SeConvBlock
-from ..noise_detector_unet import NoiseDetectorUNet as AutoEncoder
-
-
-def reshape_4_to_3_dim(x):
-    return x.reshape(x.shape[0], x.shape[2] * x.shape[3], x.shape[1])
-
-
-def reshape_3_to_4_dim(x, h, w):
-    return x.reshape(x.shape[0], x.shape[-1], h, w)
-
-
-class LayerNorm(torch.nn.Module):
-    def __init__(self, normalized_shape):
-        super(LayerNorm, self).__init__()
-        if not isinstance(normalized_shape, Tuple):
-            normalized_shape = (normalized_shape,)
-        normalized_shape = torch.Size(normalized_shape)
-        self.weight = torch.nn.Parameter(torch.ones(normalized_shape))
-        self.bias = torch.nn.Parameter(torch.zeros(normalized_shape))
-        self.normalized_shape = normalized_shape
-
-    def normalize(self, x):
-        mu = x.mean(-1, keepdim=True)
-        sigma = x.var(-1, keepdim=True, unbiased=False)
-        return (x - mu) / torch.sqrt(sigma + 1e-5) * self.weight + self.bias
-
-    def forward(self, x):
-        h, w = x.shape[-2:]
-        return reshape_3_to_4_dim(self.normalize(reshape_4_to_3_dim(x)), h, w)
-
-
-class DFFN(torch.nn.Module):
-    def __init__(self, dim, chnl_expansion_factor):
-        super(DFFN, self).__init__()
-
-        hidden_features = int(dim * chnl_expansion_factor)
-        self.patch_size = 8
-        self.dim = dim
-        self.project_in = torch.nn.Conv2d(
-            dim, hidden_features * 2, kernel_size=1, bias=False
-        )
-        self.hidden_conv = torch.nn.Conv2d(
-            hidden_features * 2,
-            hidden_features * 2,
-            kernel_size=3,
-            stride=1,
-            padding=1,
-            groups=hidden_features * 2,
-            bias=False,
-        )
-        self.fft_params = torch.nn.Parameter(
-            torch.ones(
-                (hidden_features * 2, 1, 1, self.patch_size, self.patch_size // 2 + 1)
-            )
-        )
-        self.project_out = torch.nn.Conv2d(
-            hidden_features, dim, kernel_size=1, bias=False
-        )
-
-    def forward(self, x):
-        x = self.project_in(x)
-        x_patch = x.unfold(2, self.patch_size, self.patch_size).unfold(
-            3, self.patch_size, self.patch_size
-        )
-        x_patch = x.reshape(
-            x.shape[0],
-            x.shape[1],
-            int(x.shape[2] / self.patch_size),
-            int(x.shape[3] / self.patch_size),
-            self.patch_size,
-            self.patch_size,
-        )
-        x_patch_fft = torch.fft.rfft2(x_patch.float())
-        x_patch_fft = torch.mul(x_patch_fft, self.fft_params.data)
-        x_patch = torch.fft.irfft2(x_patch_fft, s=(self.patch_size, self.patch_size))
-        x = x_patch.reshape(
-            x_patch.shape[0],
-            x_patch.shape[1],
-            x_patch.shape[2] * self.patch_size,
-            x_patch.shape[3] * self.patch_size,
-        )
-        x1, x2 = self.hidden_conv(x).chunk(2, dim=1)
-        x = F.gelu(x1) * x2
-        x = self.project_out(x)
-        return x
-
-
-class FSAS(torch.nn.Module):
-    def __init__(self, dim):
-        super(FSAS, self).__init__()
-
-        self.project_in = torch.nn.Conv2d(dim, dim * 6, kernel_size=1, bias=False)
-        self.hidden_conv = torch.nn.Conv2d(
-            dim * 6,
-            dim * 6,
-            kernel_size=3,
-            stride=1,
-            padding=1,
-            groups=dim * 6,
-            bias=False,
-        )
-
-        self.project_out = torch.nn.Conv2d(dim * 2, dim, kernel_size=1, bias=False)
-        self.norm = LayerNorm(dim * 2)
-        self.patch_size = 8
-
-    def forward(self, x):
-        hidden = self.project_in(x)
-        q, k, v = self.hidden_conv(hidden).chunk(3, dim=1)
-        q_patch = q.reshape(
-            q.shape[0],
-            q.shape[1],
-            int(q.shape[2] / self.patch_size),
-            int(q.shape[3] / self.patch_size),
-            self.patch_size,
-            self.patch_size,
-        )
-        k_patch = k.reshape(
-            k.shape[0],
-            k.shape[1],
-            int(k.shape[2] / self.patch_size),
-            int(k.shape[3] / self.patch_size),
-            self.patch_size,
-            self.patch_size,
-        )
-        q_fft = torch.fft.rfft2(q_patch.float())
-        k_fft = torch.fft.rfft2(k_patch.float())
-
-        out = q_fft * k_fft
-        out = torch.fft.irfft2(out, s=(self.patch_size, self.patch_size))
-        out = out.reshape(
-            out.shape[0],
-            out.shape[1],
-            out.shape[2] * self.patch_size,
-            out.shape[3] * self.patch_size,
-        )
-        output = v * out
-        output = self.project_out(output)
-        return output
-
-
-class TransformerLayer(torch.nn.Module):
-    def __init__(
-        self,
-        dim,
-        chnl_expansion_factor,
-    ):
-        super(TransformerLayer, self).__init__()
-        self.norm = LayerNorm(dim)
-        self.ffn = DFFN(dim, chnl_expansion_factor)
-
-    def forward(self, x):
-        x = x + self.ffn(self.norm(x))
-        return x
-
-
-class TransformerDownSampleBlock(torch.nn.Module):
-
-    def __init__(
-        self,
-        dim,
-        n_blocks,
-        chnl_expansion_factor,
-        downsample=True,
-    ):
-        super(TransformerDownSampleBlock, self).__init__()
-        self.downsample = downsample
-        self.transformer_block = torch.nn.Sequential(
-            *[TransformerLayer(dim, chnl_expansion_factor) for _ in range(n_blocks)]
-        )
-        if self.downsample:
-            self.downsample_block = torch.nn.Sequential(
-                torch.nn.Upsample(
-                    scale_factor=0.5, mode="bilinear", align_corners=False
-                ),
-                torch.nn.Conv2d(dim, dim * 2, 3, stride=1, padding=1),
-            )
-
-    def forward(self, x):
-        x = self.transformer_block(x)
-        if self.downsample:
-            return self.downsample_block(x), x
-        return x
-
-
-class TransformerWithAttentionLayer(torch.nn.Module):
-    def __init__(
-        self,
-        dim,
-        chnl_expansion_factor,
-    ):
-        super(TransformerWithAttentionLayer, self).__init__()
-        self.norm1 = LayerNorm(dim)
-        self.attn = FSAS(dim)
-        self.norm2 = LayerNorm(dim)
-        self.ffn = DFFN(dim, chnl_expansion_factor)
-
-    def forward(self, x):
-        x = x + self.attn(self.norm1(x))
-        x = x + self.ffn(self.norm2(x))
-        return x
-
-
-class TransformerUpSampleBlock(torch.nn.Module):
-    def __init__(
-        self,
-        dim,
-        n_blocks,
-        chnl_expansion_factor,
-        upsample=True,
-    ):
-        super(TransformerUpSampleBlock, self).__init__()
-        self.upsample = upsample
-        self.transformers = torch.nn.Sequential(
-            *[
-                TransformerWithAttentionLayer(dim, chnl_expansion_factor)
-                for _ in range(n_blocks)
-            ]
-        )
-        if self.upsample:
-            self.upsample_block = torch.nn.Sequential(
-                torch.nn.Upsample(scale_factor=2, mode="bilinear", align_corners=False),
-                torch.nn.Conv2d(dim, dim // 2, 3, stride=1, padding=1),
-            )
-
-    def forward(self, x):
-        x = self.transformers(x)
-        if self.upsample:
-            x = self.upsample_block(x)
-        return x
-
-
-class FuseBlock(torch.nn.Module):
-
-    def __init__(self, n_feat, chnl_expansion_factor):
-        super(FuseBlock, self).__init__()
-        self.n_feat = n_feat
-        self.att_channel = TransformerDownSampleBlock(
-            dim=n_feat * 2,
-            n_blocks=1,
-            downsample=False,
-            chnl_expansion_factor=chnl_expansion_factor,
-        )
-        self.conv = torch.nn.Conv2d(n_feat * 2, n_feat * 2, 1, 1, 0)
-        self.conv2 = torch.nn.Conv2d(n_feat * 2, n_feat * 2, 1, 1, 0)
-
-    def forward(self, enc, dnc):
-        x = self.conv(torch.cat((enc, dnc), dim=1))
-        x = self.att_channel(x)
-        x = self.conv2(x)
-        e, d = torch.split(x, [self.n_feat, self.n_feat], dim=1)
-        return e + d
-
-
-class FFTFormer(torch.nn.Module):
-    def __init__(
-        self,
-        channels=1,
-        dim=48,
-        num_blocks=[6, 6, 12],
-        num_refinement_blocks=4,
-        chnl_expansion_factor=3,
-    ):
-        super(FFTFormer, self).__init__()
-
-        self.encoders = torch.nn.ModuleList(
-            [
-                TransformerDownSampleBlock(
-                    dim=dim * 2**ix,
-                    n_blocks=n_blocks,
-                    downsample=ix < len(num_blocks) - 1,
-                    chnl_expansion_factor=chnl_expansion_factor,
-                )
-                for ix, n_blocks in enumerate(num_blocks)
-            ]
-        )
-        self.middle_layer = TransformerUpSampleBlock(
-            dim=dim * 2 ** (len(num_blocks) - 1),
-            n_blocks=num_blocks[-1],
-            upsample=True,
-            chnl_expansion_factor=chnl_expansion_factor,
-        )
-        self.decoders = torch.nn.ModuleList(
-            [
-                TransformerUpSampleBlock(
-                    dim=dim * 2**ix,
-                    n_blocks=n_blocks,
-                    upsample=ix != 0,
-                    chnl_expansion_factor=chnl_expansion_factor,
-                )
-                for ix, n_blocks in reversed(list(enumerate(num_blocks)))
-            ][1:]
-        )
-        self.refinement = TransformerUpSampleBlock(
-            dim=dim,
-            n_blocks=num_refinement_blocks,
-            upsample=False,
-            chnl_expansion_factor=chnl_expansion_factor,
-        )
-
-        self.fuse_layers = torch.nn.ModuleList(
-            [
-                FuseBlock(dim * 2**i, chnl_expansion_factor=chnl_expansion_factor)
-                for i in range(len(num_blocks) - 1)
-            ]
-        )
-        self.output = torch.nn.Conv2d(
-            int(dim), channels, kernel_size=3, stride=1, padding=1
-        )
-
-    def forward(self, x, img):
-        encoder_outputs = []
-        for encoder in self.encoders:
-            if encoder.downsample:
-                x, y = encoder(x)
-                encoder_outputs.append(y)
-            else:
-                encoder_outputs.append(encoder(x))
-        decoded = self.middle_layer(encoder_outputs[-1])
-        for encoded, decoder, fuse in zip(
-            reversed(encoder_outputs[: len(self.decoders)]),
-            self.decoders,
-            reversed(self.fuse_layers),
-        ):
-            decoded = decoder(fuse(decoded, encoded))
-        refined = self.refinement(decoded)
-        return self.output(refined) + img
+from ..noise_detector_unet import AutoEncoder
 
 
 class FFTBlock(torch.nn.Module):
@@ -451,27 +125,162 @@ class AnisotropicDiffusionBlock(torch.nn.Module):
         return self.conv(self.diffuse(img))
 
 
+class LayerNorm(torch.nn.Module):
+    def __init__(self, normalized_shape):
+        super(LayerNorm, self).__init__()
+        if not isinstance(normalized_shape, Tuple):
+            normalized_shape = (normalized_shape,)
+        normalized_shape = torch.Size(normalized_shape)
+        self.weight = torch.nn.Parameter(torch.ones(normalized_shape))
+        self.bias = torch.nn.Parameter(torch.zeros(normalized_shape))
+        self.normalized_shape = normalized_shape
+
+    def normalize(self, x):
+        mu = x.mean(-1, keepdim=True)
+        sigma = x.var(-1, keepdim=True, unbiased=False)
+        return (x - mu) / torch.sqrt(sigma + 1e-5) * self.weight + self.bias
+
+    def forward(self, x):
+        b, c, h, w = x.shape
+        x = x.reshape(b, h * w, c)  # reshape to 3 dims
+        x = self.normalize(x)
+        return x.reshape(b, c, h, w)  # reshape to 4 dims
+
+
+class MDTA(torch.nn.Module):
+    def __init__(self, dim, num_heads):
+        super(MDTA, self).__init__()
+        self.num_heads = num_heads
+        self.temperature = torch.nn.Parameter(torch.ones(num_heads, 1, 1))
+
+        self.qkv = torch.nn.Conv2d(dim, dim * 3, kernel_size=1, bias=False)
+        self.qkv_dwconv = torch.nn.Conv2d(
+            dim * 3,
+            dim * 3,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            groups=dim * 3,
+            bias=False,
+        )
+        self.project_out = torch.nn.Conv2d(dim, dim, kernel_size=1, bias=False)
+
+    def forward(self, x):
+        b, c, h, w = x.shape
+        qkv = self.qkv_dwconv(self.qkv(x))
+        q, k, v = qkv.chunk(3, dim=1)
+        chnls_per_head = c // self.num_heads
+        q = q.reshape(b, self.num_heads, chnls_per_head, h * w)
+        k = k.reshape(b, self.num_heads, chnls_per_head, h * w)
+        v = v.reshape(b, self.num_heads, chnls_per_head, h * w)
+        q = torch.nn.functional.normalize(q, dim=-1)
+        k = torch.nn.functional.normalize(k, dim=-1)
+
+        attn = (q @ k.transpose(-2, -1)) * self.temperature
+        attn = attn.softmax(dim=-1)
+
+        out = attn @ v
+        out = out.reshape(b, self.num_heads * chnls_per_head, h, w)
+
+        return self.project_out(out)
+
+
+class GDFN(torch.nn.Module):
+    def __init__(self, dim, chnl_expansion_factor):
+        super(GDFN, self).__init__()
+
+        hidden_features = int(dim * chnl_expansion_factor)
+        self.project_in = torch.nn.Conv2d(
+            dim, hidden_features * 2, kernel_size=1, bias=False
+        )
+        self.dconv = torch.nn.Conv2d(
+            hidden_features * 2,
+            hidden_features * 2,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            groups=hidden_features * 2,
+            bias=False,
+        )
+        self.project_out = torch.nn.Conv2d(
+            hidden_features, dim, kernel_size=1, bias=False
+        )
+
+    def forward(self, x):
+        x = self.project_in(x)
+        x1, x2 = self.dconv(x).chunk(2, dim=1)
+        x = F.gelu(x1) * x2
+        return self.project_out(x)
+
+
+class TransformerLayer(torch.nn.Module):
+
+    def __init__(
+        self,
+        dim,
+        num_heads,
+        chnl_expansion_factor,
+    ):
+        super(TransformerLayer, self).__init__()
+        self.norm = LayerNorm(dim)
+        self.attn = MDTA(dim, num_heads)
+        self.norm = LayerNorm(dim)
+        self.ffn = GDFN(dim, chnl_expansion_factor)
+
+    def forward(self, x):
+        x = x + self.ffn(self.norm(x))
+        return x
+
+
+class TransformerBlock(torch.nn.Module):
+
+    def __init__(
+        self,
+        channels,
+        hidden_dim,
+        n_blocks,
+        num_heads,
+        chnl_expansion_factor,
+    ):
+        super(TransformerBlock, self).__init__()
+        self.transformers = torch.nn.Sequential(
+            *[
+                TransformerLayer(hidden_dim, num_heads, chnl_expansion_factor)
+                for _ in range(n_blocks)
+            ]
+        )
+        self.output = torch.nn.Conv2d(
+            hidden_dim, channels, kernel_size=3, stride=1, padding=1
+        )
+
+    def forward(self, x):
+        x = self.transformers(x)
+        return self.output(x)
+
+
 class DenoiseNet(torch.nn.Module):
 
     def __init__(
         self,
         channels=1,
-        auto_encoder_first_output=48,
+        auto_encoder_first_output=64,
         auto_encoder_depth=5,
         seconv_depth=7,
         fft_depth=7,
         anisotropi_depth=5,
         output_cnn_depth=10,
-        max_filters=48,
+        max_filters=64,
+        unet_num_conv_layers=3,
+        refinement_transformer_n_blocks=4,
+        refinement_transformer_num_heads=1,
+        refinement_transformer_chnl_expansion_factor=4,
         enable_seconv=True,
         enable_anti_seconv=False,
         enable_unet=False,
         enable_fft=False,
         enable_anisotropic=True,
         enable_unet_post_processing=True,
-        num_transformer_blocks=[2, 2, 3],
-        num_refinement_blocks=4,
-        chnl_expansion_factor=2,
+        enable_refinement_rtransformer=True,
     ) -> None:
         super(DenoiseNet, self).__init__()
         self.enable_seconv = enable_seconv
@@ -480,13 +289,17 @@ class DenoiseNet(torch.nn.Module):
         self.enable_fft = enable_fft
         self.enable_anisotropic = enable_anisotropic
         self.enable_unet_post_processing = enable_unet_post_processing
+        self.enable_refinement_rtransformer = enable_refinement_rtransformer
 
         n_outputs = 1
 
         if self.enable_unet:
             n_outputs += 1
             self.auto_encoder = AutoEncoder(
-                channels, auto_encoder_first_output, auto_encoder_depth
+                channels,
+                auto_encoder_first_output,
+                auto_encoder_depth,
+                num_conv_layers=unet_num_conv_layers,
             )
 
         if self.enable_seconv:
@@ -525,7 +338,7 @@ class DenoiseNet(torch.nn.Module):
             )
 
         if self.enable_anisotropic:
-            n_outputs += anisotropi_depth
+            n_outputs += 1
             self.anisotropic_blocks = torch.nn.ModuleList(
                 [
                     AnisotropicDiffusionBlock(channels=channels, kernel_size=3 + 2 * d)
@@ -541,7 +354,7 @@ class DenoiseNet(torch.nn.Module):
         else:
             start_ix = math.ceil(math.log2(n_outputs * channels))
 
-        self.output_layer = torch.nn.ModuleList(
+        self.cnn_layers = torch.nn.ModuleList(
             [ConvBlock(n_outputs * channels, min(2**start_ix, max_filters))]
             + [
                 ConvBlock(
@@ -555,14 +368,25 @@ class DenoiseNet(torch.nn.Module):
                 for p in range(output_cnn_depth - 1)
             ]
         )
+        self.output_cnn_layer = ConvBlock(
+            min(2 ** (output_cnn_depth - 2), max_filters), channels
+        )
 
         if self.enable_unet_post_processing:
-            self.unet_post_processing = FFTFormer(
+            self.unet_post_processing = AutoEncoder(
                 channels,
-                dim=max_filters,
-                num_blocks=num_transformer_blocks,
-                num_refinement_blocks=num_refinement_blocks,
-                chnl_expansion_factor=chnl_expansion_factor,
+                auto_encoder_first_output,
+                auto_encoder_depth,
+                num_conv_layers=unet_num_conv_layers,
+            )
+
+        if self.enable_refinement_rtransformer:
+            self.refinement_block = TransformerBlock(
+                channels=channels,
+                hidden_dim=max_filters,
+                n_blocks=refinement_transformer_n_blocks,
+                num_heads=refinement_transformer_num_heads,
+                chnl_expansion_factor=refinement_transformer_chnl_expansion_factor,
             )
 
     def forward(self, noisy_images: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
@@ -605,10 +429,12 @@ class DenoiseNet(torch.nn.Module):
             x_anisotropic = noisy_images.clone()
             for module in self.anisotropic_blocks:
                 x_anisotropic = module(x_anisotropic)
-                outputs.append(x_anisotropic)
-        output = torch.cat(outputs, 1)
-        for module in self.output_layer:
-            output = module(output)
+            outputs.append(x_anisotropic)
+        embeddings = torch.cat(outputs, 1)
+        for module in self.cnn_layers:
+            embeddings = module(embeddings)
         if self.enable_unet_post_processing:
-            return self.unet_post_processing(output, noisy_images)
+            output = self.unet_post_processing(self.output_cnn_layer(embeddings))
+        if self.enable_refinement_rtransformer:
+            output = output + self.refinement_block(embeddings)
         return output

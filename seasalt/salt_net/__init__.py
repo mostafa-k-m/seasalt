@@ -2,7 +2,6 @@ from .denoise_net import (
     ConvBlock,
     DenoiseNet,
     FFTBlock,
-    FFTFormer,
     OutputBlock,
     SeConvBlock,
 )
@@ -15,11 +14,11 @@ from .denoise_seconvnet import train as train_denoiser
 from .hybrid_model import HybridModel
 from .hybrid_model_train import train_loop as train_hybrid_model
 from .noise_detector_unet import (
+    AutoEncoder,
     DecoderBlock,
     DiceLoss,
     EncoderBlock,
     MiddleBlock,
-    NoiseDetectorUNet,
 )
 from .noise_detector_unet import train as train_noise_detector
 from .plotting_utils import (
@@ -51,7 +50,7 @@ __all__ = [
     "DiceLoss",
     "EncoderBlock",
     "MiddleBlock",
-    "NoiseDetectorUNet",
+    "AutoEncoder",
     "train_noise_detector",
     "NoiseType",
     "collate_images",
@@ -61,7 +60,6 @@ __all__ = [
     "noise_adder",
     "ConvBlock",
     "DenoiseNet",
-    "FFTFormer",
     "FFTBlock",
     "OutputBlock",
     "SeConvBlock",

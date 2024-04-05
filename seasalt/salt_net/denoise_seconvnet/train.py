@@ -116,4 +116,4 @@ def train(
             run_name,
             model,
         )
-        save_model_weights(model, train_dataloader, run_name, epoch)
+        save_model_weights(model, run_name, epoch)

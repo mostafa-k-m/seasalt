@@ -1,11 +1,11 @@
 from .loss import DiceLoss
-from .model import DecoderBlock, EncoderBlock, MiddleBlock, NoiseDetectorUNet
+from .model import AutoEncoder, DecoderBlock, EncoderBlock, MiddleBlock
 from .train import train
 
 __all__ = [
     "DiceLoss",
     "train",
-    "NoiseDetectorUNet",
+    "AutoEncoder",
     "EncoderBlock",
     "DecoderBlock",
     "MiddleBlock",

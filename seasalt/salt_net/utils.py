@@ -148,11 +148,8 @@ def log_progress_to_console(
         )
 
 
-def save_model_weights(model, train_dataloader, run_name, epoch):
+def save_model_weights(model, run_name, epoch):
     torch.save(
         model.state_dict(),
         models_folder.joinpath(f"pytorch_{run_name}_{epoch:d}.h5"),
     )
-    if epoch % 25 == 0:
-        traced_model = torch.jit.trace(model, next(iter(train_dataloader)))
-        traced_model.save(f"pytorch_{run_name}_{epoch:d}.pt")  # type: ignore

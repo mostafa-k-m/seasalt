@@ -34,11 +34,10 @@ def train_loop_step(
         pred_images = model(noisy_images)
         train_loss = criterion(pred_images, target_images)
         train_loss.backward()
-        if ((step + 1) % 10 == 0) or (step == (len(train_dataloader) - 1)):
+        if ((step + 1) % 3 == 0) or (step == (len(train_dataloader) - 1)):
             optimizer.step()
             optimizer.zero_grad()
         epoch_train_running_loss += train_loss.item()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # type: ignore
     epoch_train_loss_mean = epoch_train_running_loss / (step + 1)
     writer.add_scalar(
         "train loss",
@@ -162,4 +161,4 @@ def train_loop(
             tensor_board_dataset_iterator,
             epoch,
         )
-        save_model_weights(model, train_dataloader, run_name, epoch)
+        save_model_weights(model, run_name, epoch)
