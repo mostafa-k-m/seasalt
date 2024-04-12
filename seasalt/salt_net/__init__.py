@@ -28,10 +28,7 @@ from .plotting_utils import (
 )
 from .processing import (
     NoiseType,
-    collate_images,
-    get_tensor_board_dataset,
-    get_test_dataloader,
-    get_train_dataloader,
+    DataLoadersInitializer,
     noise_adder,
     noise_adder_numpy,
 )
@@ -53,10 +50,7 @@ __all__ = [
     "AutoEncoder",
     "train_noise_detector",
     "NoiseType",
-    "collate_images",
-    "get_test_dataloader",
-    "get_train_dataloader",
-    "get_tensor_board_dataset",
+    "DataLoadersInitializer",
     "noise_adder",
     "ConvBlock",
     "DenoiseNet",
