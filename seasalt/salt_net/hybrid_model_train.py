@@ -34,7 +34,7 @@ def train_loop_step(
         pred_images = model(noisy_images)
         train_loss = criterion(pred_images, target_images)
         train_loss.backward()
-        if ((step + 1) % 3 == 0) or (step == (len(train_dataloader) - 1)):
+        if ((step + 1) % 2 == 0) or (step == (len(train_dataloader) - 1)):
             optimizer.step()
             optimizer.zero_grad()
         epoch_train_running_loss += train_loss.item()

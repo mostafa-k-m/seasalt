@@ -1,5 +1,4 @@
 import math
-from typing import Tuple
 
 import torch
 import torch.nn.functional as F
@@ -128,12 +127,8 @@ class AnisotropicDiffusionBlock(torch.nn.Module):
 class LayerNorm(torch.nn.Module):
     def __init__(self, normalized_shape):
         super(LayerNorm, self).__init__()
-        if not isinstance(normalized_shape, Tuple):
-            normalized_shape = (normalized_shape,)
-        normalized_shape = torch.Size(normalized_shape)
-        self.weight = torch.nn.Parameter(torch.ones(normalized_shape))
-        self.bias = torch.nn.Parameter(torch.zeros(normalized_shape))
-        self.normalized_shape = normalized_shape
+        self.weight = torch.nn.Parameter(torch.ones((normalized_shape,)))
+        self.bias = torch.nn.Parameter(torch.zeros((normalized_shape,)))
 
     def normalize(self, x):
         mu = x.mean(-1, keepdim=True)
@@ -152,7 +147,6 @@ class MDTA(torch.nn.Module):
         super(MDTA, self).__init__()
         self.num_heads = num_heads
         self.temperature = torch.nn.Parameter(torch.ones(num_heads, 1, 1))
-
         self.qkv = torch.nn.Conv2d(dim, dim * 3, kernel_size=1, bias=False)
         self.qkv_dwconv = torch.nn.Conv2d(
             dim * 3,
@@ -175,13 +169,10 @@ class MDTA(torch.nn.Module):
         v = v.reshape(b, self.num_heads, chnls_per_head, h * w)
         q = torch.nn.functional.normalize(q, dim=-1)
         k = torch.nn.functional.normalize(k, dim=-1)
-
         attn = (q @ k.transpose(-2, -1)) * self.temperature
         attn = attn.softmax(dim=-1)
-
         out = attn @ v
         out = out.reshape(b, self.num_heads * chnls_per_head, h, w)
-
         return self.project_out(out)
 
 
@@ -222,13 +213,14 @@ class TransformerLayer(torch.nn.Module):
         chnl_expansion_factor,
     ):
         super(TransformerLayer, self).__init__()
-        self.norm = LayerNorm(dim)
+        self.norm1 = LayerNorm(dim)
         self.attn = MDTA(dim, num_heads)
-        self.norm = LayerNorm(dim)
+        self.norm2 = LayerNorm(dim)
         self.ffn = GDFN(dim, chnl_expansion_factor)
 
     def forward(self, x):
-        x = x + self.ffn(self.norm(x))
+        x = x + self.attn(self.norm1(x))
+        x = x + self.ffn(self.norm2(x))
         return x
 
 
@@ -270,17 +262,16 @@ class DenoiseNet(torch.nn.Module):
         anisotropi_depth=5,
         output_cnn_depth=10,
         max_filters=64,
-        unet_num_conv_layers=3,
         refinement_transformer_n_blocks=4,
         refinement_transformer_num_heads=1,
-        refinement_transformer_chnl_expansion_factor=4,
+        refinement_transformer_chnl_expansion_factor=2,
         enable_seconv=True,
         enable_anti_seconv=False,
         enable_unet=False,
         enable_fft=False,
         enable_anisotropic=True,
         enable_unet_post_processing=True,
-        enable_refinement_rtransformer=True,
+        enable_refinement_transformer=True,
     ) -> None:
         super(DenoiseNet, self).__init__()
         self.enable_seconv = enable_seconv
@@ -289,7 +280,7 @@ class DenoiseNet(torch.nn.Module):
         self.enable_fft = enable_fft
         self.enable_anisotropic = enable_anisotropic
         self.enable_unet_post_processing = enable_unet_post_processing
-        self.enable_refinement_rtransformer = enable_refinement_rtransformer
+        self.enable_refinement_transformer = enable_refinement_transformer
 
         n_outputs = 1
 
@@ -299,7 +290,6 @@ class DenoiseNet(torch.nn.Module):
                 channels,
                 auto_encoder_first_output,
                 auto_encoder_depth,
-                num_conv_layers=unet_num_conv_layers,
             )
 
         if self.enable_seconv:
@@ -377,10 +367,9 @@ class DenoiseNet(torch.nn.Module):
                 channels,
                 auto_encoder_first_output,
                 auto_encoder_depth,
-                num_conv_layers=unet_num_conv_layers,
             )
 
-        if self.enable_refinement_rtransformer:
+        if self.enable_refinement_transformer:
             self.refinement_block = TransformerBlock(
                 channels=channels,
                 hidden_dim=max_filters,
@@ -433,8 +422,9 @@ class DenoiseNet(torch.nn.Module):
         embeddings = torch.cat(outputs, 1)
         for module in self.cnn_layers:
             embeddings = module(embeddings)
-        if self.enable_unet_post_processing:
-            output = self.unet_post_processing(self.output_cnn_layer(embeddings))
-        if self.enable_refinement_rtransformer:
+        output = self.output_cnn_layer(embeddings)
+        if self.enable_refinement_transformer:
             output = output + self.refinement_block(embeddings)
+        if self.enable_unet_post_processing:
+            output = self.unet_post_processing(output)
         return output

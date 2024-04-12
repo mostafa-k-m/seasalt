@@ -57,25 +57,9 @@ class ConvLayer(torch.nn.Module):
 
 class EncoderBlock(torch.nn.Module):
 
-    def __init__(
-        self, in_size, out_size, squeeze_excitation, dropout, num_conv_layers
-    ) -> None:
+    def __init__(self, in_size, out_size, squeeze_excitation, dropout) -> None:
         super(EncoderBlock, self).__init__()
-
-        if num_conv_layers == 1:
-            self.conv = ConvLayer(in_size, out_size, squeeze_excitation, dropout)
-        else:
-            self.conv = torch.nn.Sequential(
-                *[
-                    ConvLayer(
-                        in_size if i == 0 else out_size,
-                        out_size,
-                        squeeze_excitation,
-                        dropout,
-                    )
-                    for i in range(num_conv_layers)
-                ]
-            )
+        self.conv = ConvLayer(in_size, out_size, squeeze_excitation, dropout)
         self.pooling = torch.nn.MaxPool2d((2, 2), padding=0)
 
     def forward(self, images: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -86,25 +70,9 @@ class EncoderBlock(torch.nn.Module):
 
 class MiddleBlock(torch.nn.Module):
 
-    def __init__(
-        self, in_size, out_size, squeeze_excitation, dropout, num_conv_layers
-    ) -> None:
+    def __init__(self, in_size, out_size, squeeze_excitation, dropout) -> None:
         super(MiddleBlock, self).__init__()
-
-        if num_conv_layers == 1:
-            self.conv = ConvLayer(in_size, out_size, squeeze_excitation, dropout)
-        else:
-            self.conv = torch.nn.Sequential(
-                *[
-                    ConvLayer(
-                        in_size if i == 0 else out_size,
-                        out_size,
-                        squeeze_excitation,
-                        dropout,
-                    )
-                    for i in range(num_conv_layers)
-                ]
-            )
+        self.conv = ConvLayer(in_size, out_size, squeeze_excitation, dropout)
 
     def forward(self, images: torch.Tensor) -> Tuple[torch.Tensor, None]:
         conv_out = self.conv(images)
@@ -113,9 +81,7 @@ class MiddleBlock(torch.nn.Module):
 
 class DecoderBlock(torch.nn.Module):
 
-    def __init__(
-        self, in_size, out_size, squeeze_excitation, dropout, num_conv_layers
-    ) -> None:
+    def __init__(self, in_size, out_size, squeeze_excitation, dropout) -> None:
         super(DecoderBlock, self).__init__()
 
         self.t_conv = torch.nn.Sequential(
@@ -125,20 +91,7 @@ class DecoderBlock(torch.nn.Module):
             torch.nn.BatchNorm2d(out_size),
             torch.nn.ReLU(),
         )
-        if num_conv_layers == 1:
-            self.conv = ConvLayer(2 * out_size, out_size, squeeze_excitation, dropout)
-        else:
-            self.conv = torch.nn.Sequential(
-                *[
-                    ConvLayer(
-                        2 * out_size if i == 0 else out_size,
-                        out_size,
-                        squeeze_excitation,
-                        dropout,
-                    )
-                    for i in range(num_conv_layers)
-                ]
-            )
+        self.conv = ConvLayer(2 * out_size, out_size, squeeze_excitation, dropout)
 
     def pad_on_upscale(self, x_1, x_2):
         return torch.nn.functional.pad(
@@ -177,22 +130,17 @@ class AutoEncoder(torch.nn.Module):
         max_exp=5,
         squeeze_excitation=False,
         dropout=False,
-        num_conv_layers=1,
+        sigmoid_last_activation=False,
     ) -> None:
         super(AutoEncoder, self).__init__()
         self.encoder = torch.nn.ModuleList(
-            [
-                EncoderBlock(
-                    channels, first_output, squeeze_excitation, dropout, num_conv_layers
-                )
-            ]
+            [EncoderBlock(channels, first_output, squeeze_excitation, dropout)]
             + [
                 EncoderBlock(
                     first_output * (2 ** (min(d - 1, max_exp))),
                     first_output * (2 ** min(d, max_exp)),
                     squeeze_excitation,
                     dropout,
-                    num_conv_layers,
                 )
                 for d in range(1, depth - 1)
             ]
@@ -202,7 +150,6 @@ class AutoEncoder(torch.nn.Module):
                     first_output * (2 ** min((depth - 1), max_exp)),
                     squeeze_excitation,
                     dropout,
-                    num_conv_layers,
                 )
             ]
         )
@@ -214,7 +161,6 @@ class AutoEncoder(torch.nn.Module):
                     first_output * (2 ** (min(d - 1, max_exp))),
                     squeeze_excitation,
                     dropout,
-                    num_conv_layers,
                 )
                 for d in range(1, depth)
             ][::-1]
@@ -224,7 +170,7 @@ class AutoEncoder(torch.nn.Module):
             torch.nn.ConvTranspose2d(
                 first_output, channels, kernel_size=3, stride=1, padding=1
             ),
-            torch.nn.Sigmoid(),
+            torch.nn.ReLU() if sigmoid_last_activation else torch.nn.Sigmoid(),
         )
 
     def forward(self, images: torch.Tensor) -> torch.Tensor:

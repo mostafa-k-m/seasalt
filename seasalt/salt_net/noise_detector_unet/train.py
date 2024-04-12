@@ -12,13 +12,13 @@ from ..utils import (
     save_model_weights,
 )
 from .loss import DiceLoss
-from .model import NoiseDetectorUNet
+from .model import AutoEncoder
 
 torch.manual_seed(101)
 
 
 def train(
-    model: NoiseDetectorUNet,
+    model: AutoEncoder,
     learning_rate: float,
     train_dataloader: DataLoader,
     val_dataloader: DataLoader,
@@ -104,4 +104,4 @@ def train(
             run_name,
             model,
         )
-        save_model_weights(model, train_dataloader, run_name, epoch)
+        save_model_weights(model, run_name, epoch)

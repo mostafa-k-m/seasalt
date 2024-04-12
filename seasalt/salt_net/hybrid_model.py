@@ -23,16 +23,18 @@ class HybridModel(torch.nn.Module):
             enable_unet_post_processing=True,
             output_cnn_depth=10,
             max_filters=64,
-            unet_num_conv_layers=3,
             refinement_transformer_n_blocks=4,
             refinement_transformer_num_heads=1,
-            refinement_transformer_chnl_expansion_factor=4,
+            refinement_transformer_chnl_expansion_factor=2,
+            enable_refinement_transformer=True,
         )
         if denoiser_weights_path:
             denoiser_model.load_state_dict(
                 torch.load(denoiser_weights_path, device),
             )
-        noise_detecor_model = AutoEncoder(squeeze_excitation=True, dropout=True)
+        noise_detecor_model = AutoEncoder(
+            squeeze_excitation=True, dropout=True, sigmoid_last_activation=True
+        )
         if detector_weights_path:
             noise_detecor_model.load_state_dict(
                 torch.load(detector_weights_path, device),

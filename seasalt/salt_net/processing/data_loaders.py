@@ -1,5 +1,6 @@
 import random
 from functools import partial
+from itertools import product
 from pathlib import Path
 from typing import List
 
@@ -11,7 +12,7 @@ from torchvision import datasets, transforms
 
 from .noise_adders import NoiseType, noise_adder
 
-PATCH_SIZE, STRIDE = 64, 20
+PATCH_SIZE, STRIDE = 64, 32
 SCALES = [1, 0.9, 0.8, 0.7]
 torch.manual_seed(101)
 np.random.seed(101)
@@ -19,7 +20,7 @@ np.random.seed(101)
 
 root_folder = Path().resolve()
 
-data_folder = root_folder.joinpath("data").joinpath("train").resolve()
+data_folder = root_folder.joinpath("data").joinpath("DFWB").resolve()
 
 transform = transforms.Compose(
     [
@@ -63,7 +64,7 @@ def collate_images(
 
 
 class AugmentedDataset(datasets.ImageFolder):
-    def __init__(self, root, transform=None, n_patches_per_image=640):
+    def __init__(self, root, transform=None, n_patches_per_image=3):
         super(AugmentedDataset, self).__init__(root, transform=transform)
         classes, class_to_idx = self.find_classes(self.root)
         self.n_patches_per_image = n_patches_per_image
@@ -71,8 +72,8 @@ class AugmentedDataset(datasets.ImageFolder):
             self.root, class_to_idx, datasets.folder.IMG_EXTENSIONS, is_valid_file=None
         )
         self.targets = [s[1] for s in self.samples]
-        self.loaded_image_index = -1
-        self.patches = {}
+        self.last_index = -1
+        self.cached_batch = []
 
     def __len__(self) -> int:
         return len(self.samples) * self.n_patches_per_image
@@ -88,11 +89,18 @@ class AugmentedDataset(datasets.ImageFolder):
                 interpolation=tvF.InterpolationMode.BICUBIC,
                 antialias=False,
             )
-            for i in range(0, h_scaled - PATCH_SIZE + 1, STRIDE):
-                for j in range(0, w_scaled - PATCH_SIZE + 1, STRIDE):
-                    x = img_scaled[:, i : i + PATCH_SIZE, j : j + PATCH_SIZE]
-                    patches.append(data_augmenter(x, mode=np.random.randint(0, 8)))
-        return random.choices(patches, k=self.n_patches_per_image)
+            for i, j in random.choices(
+                list(
+                    product(
+                        range(0, h_scaled - PATCH_SIZE + 1, STRIDE),
+                        range(0, w_scaled - PATCH_SIZE + 1, STRIDE),
+                    )
+                ),
+                k=self.n_patches_per_image,
+            ):
+                x = img_scaled[:, i : i + PATCH_SIZE, j : j + PATCH_SIZE]
+                patches.append(data_augmenter(x, mode=np.random.randint(0, 8)))
+        return patches
 
     @staticmethod
     def make_dataset(
@@ -106,21 +114,18 @@ class AugmentedDataset(datasets.ImageFolder):
         )
 
     def patch_handler(self, index: int):
-        if index not in self.patches:
-            self.loaded_image_index = index
-            path, target = self.samples[index]
-            sample = self.loader(path)
-            if self.transform is not None:
-                sample = self.transform(sample)
-            self.patches[index] = self.patch_generator(sample)
-        return
+        path, _ = self.samples[index]
+        sample = self.loader(path)
+        if self.transform is not None:
+            sample = self.transform(sample)
+        return self.patch_generator(sample)
 
     def __getitem__(self, index: int):
-        self.patch_handler(index // self.n_patches_per_image)
+        cur_index = index // self.n_patches_per_image
+        if self.last_index != cur_index:
+            self.cached_batch = self.patch_handler(index // self.n_patches_per_image)
         return (
-            self.patches[index // self.n_patches_per_image][
-                index % self.n_patches_per_image
-            ],
+            self.cached_batch[index % self.n_patches_per_image],
             0,
         )
 

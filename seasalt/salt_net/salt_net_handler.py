@@ -9,19 +9,15 @@ from seasalt.salt_net import (
 
 root_folder = Path(__file__).parent.parent.parent.resolve()
 models_folder = root_folder.joinpath("models")
-denoiser = torch.jit.load(models_folder.joinpath("denoiser.pt"))
 
 
 class SaltNetOneStageHandler:
     def __init__(self, denoiser_path="hybrid.pt"):
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
-        # elif torch.backends.mps.is_available():
-        # self.device = torch.device("mps")
         else:
             self.device = torch.device("cpu")
 
-        # self.denoiser = torch.jit.load(models_folder.joinpath(denoiser_path))
         self.denoiser = HybridModel(
             denoiser_weights_path=None,
             detector_weights_path=None,
