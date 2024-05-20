@@ -40,9 +40,9 @@ class SeConvBlock(torch.nn.Module):
             groups=self.channels,
         )
 
-    def forward(self, images, noise_mask):
+    def forward(self, images):
         # non-noisy pixels map:
-        M = noise_mask
+        M = torch.logical_or(images == 0.0, images == 1.0).float()
         M_hat = 1 - M
 
         conv_input = self.image_conv(images)
@@ -101,9 +101,9 @@ class OutputBlock(torch.nn.Module):
             torch.nn.ReLU(),
         )
 
-    def forward(self, noisy_images, seconv_output, mask):
+    def forward(self, noisy_images, seconv_output):
         x = self.conv(seconv_output)
-        x = x * mask
+        x = x * torch.logical_or(noisy_images == 0, noisy_images == 255).float()
         outputs = x + noisy_images
         return outputs
 
@@ -132,8 +132,8 @@ class SeConvDesnoiseNet(torch.nn.Module):
 
         self.output = OutputBlock(min(2 ** (conv_depth + 1), max_filters), channels)
 
-    def forward(self, noisy_images: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        mask = mask.float()
+    def forward(self, noisy_images: torch.Tensor) -> torch.Tensor:
+        mask = torch.logical_or(noisy_images == 0, noisy_images == 255).float()
         noisy_clone = noisy_images.clone()
         noisy_clone[mask == 1] = 0
         x = noisy_clone

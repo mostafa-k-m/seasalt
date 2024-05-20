@@ -2,7 +2,14 @@ from typing import Optional
 
 import torch
 import torch.optim as optim
-from rich.progress import track
+from rich.progress import (
+    BarColumn,
+    SpinnerColumn,
+    Progress,
+    TaskProgressColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
@@ -17,6 +24,17 @@ from .utils import (
     save_model_weights,
 )
 
+progress_bar = Progress(
+    SpinnerColumn(),
+    "[progress.description]{task.description}",
+    BarColumn(),
+    TaskProgressColumn(),
+    "Elapsed:",
+    TimeElapsedColumn(),
+    "Remaining:",
+    TimeRemainingColumn(),
+)
+
 
 def train_loop_step(
     model, train_dataloader, device, optimizer, criterion, writer, epoch
@@ -24,20 +42,22 @@ def train_loop_step(
     train_loss = 0
     model.train()
     epoch_train_running_loss = 0
-    for step, (noisy_images, _, target_images) in track(
-        enumerate(train_dataloader),
-        description=f"Train Epoch #{epoch+1}",
-        total=len(train_dataloader),
-    ):
-        noisy_images = noisy_images.to(device)
-        target_images = target_images.to(device)
-        pred_images = model(noisy_images)
-        train_loss = criterion(pred_images, target_images)
-        train_loss.backward()
-        if ((step + 1) % 2 == 0) or (step == (len(train_dataloader) - 1)):
-            optimizer.step()
-            optimizer.zero_grad()
-        epoch_train_running_loss += train_loss.item()
+    with progress_bar:
+        task = progress_bar.add_task(
+            description=f"[green]Train Epoch #{epoch+1}",
+            total=len(train_dataloader),
+        )
+        for step, (noisy_images, _, target_images) in enumerate(train_dataloader):
+            noisy_images = noisy_images.to(device)
+            target_images = target_images.to(device)
+            pred_images = model(noisy_images)
+            train_loss = criterion(pred_images, target_images)
+            train_loss.backward()
+            if ((step + 1) % 30 == 0) or (step == (len(train_dataloader) - 1)):
+                optimizer.step()
+                optimizer.zero_grad()
+            epoch_train_running_loss += train_loss.item()
+            progress_bar.update(task, advance=1)
     epoch_train_loss_mean = epoch_train_running_loss / (step + 1)
     writer.add_scalar(
         "train loss",
@@ -58,20 +78,22 @@ def test_loop_step(
     epoch_test_running_loss = 0
     epoch_ssim_running_score = 0
     epoch_psnr_running_score = 0
-    with torch.no_grad():
-        model.eval()
-        for step, (noisy_images, _, target_images) in track(
-            enumerate(val_dataloader),
-            description=f"Validation Epoch #{epoch+1}",
+    with progress_bar:
+        task = progress_bar.add_task(
+            description=f"[blue]Train Epoch #{epoch+1}",
             total=len(val_dataloader),
-        ):
-            noisy_images = noisy_images.to(device)
-            target_images = target_images.to(device)
-            pred_images = model(noisy_images)
-            val_loss = criterion(pred_images, target_images)
-            epoch_test_running_loss += val_loss.item()
-            epoch_ssim_running_score += SSIM(pred_images, target_images).item()
-            epoch_psnr_running_score += PSNR(pred_images, target_images).item()
+        )
+        with torch.no_grad():
+            model.eval()
+            for step, (noisy_images, _, target_images) in enumerate(val_dataloader):
+                noisy_images = noisy_images.to(device)
+                target_images = target_images.to(device)
+                pred_images = model(noisy_images)
+                val_loss = criterion(pred_images, target_images)
+                epoch_test_running_loss += val_loss.item()
+                epoch_ssim_running_score += SSIM(pred_images, target_images).item()
+                epoch_psnr_running_score += PSNR(pred_images, target_images).item()
+                progress_bar.update(task, advance=1)
     epoch_test_loss_mean = epoch_test_running_loss / (step + 1)
     epoch_ssim_score_mean = epoch_ssim_running_score / (step + 1)
     epoch_psnr_score_mean = epoch_psnr_running_score / (step + 1)
@@ -128,7 +150,7 @@ def train_loop(
 ) -> None:
     model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    criterion = MixL1SSIMLoss()
+    criterion = torch.nn.L1Loss()
     writer = SummaryWriter(log_dir=f".runs/{run_name}")
     tensor_board_dataset_iterator = iter(tensor_board_dataset)  # type: ignore
     for epoch in range(num_epochs):
