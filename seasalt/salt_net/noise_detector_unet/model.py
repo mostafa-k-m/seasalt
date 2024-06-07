@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 
@@ -79,19 +79,18 @@ class MiddleBlock(torch.nn.Module):
         return conv_out, None
 
 
-class DecoderBlock(torch.nn.Module):
+class FuseBlock(torch.nn.Module):
 
-    def __init__(self, in_size, out_size, squeeze_excitation, dropout) -> None:
-        super(DecoderBlock, self).__init__()
+    def __init__(self, in_size, out_size) -> None:
+        super(FuseBlock, self).__init__()
 
-        self.t_conv = torch.nn.Sequential(
+        self.conv = torch.nn.Sequential(
             torch.nn.ConvTranspose2d(
                 in_size, out_size, kernel_size=2, stride=2, padding=0
             ),
             torch.nn.BatchNorm2d(out_size),
             torch.nn.ReLU(),
         )
-        self.conv = ConvLayer(2 * out_size, out_size, squeeze_excitation, dropout)
 
     def pad_on_upscale(self, x_1, x_2):
         return torch.nn.functional.pad(
@@ -115,10 +114,20 @@ class DecoderBlock(torch.nn.Module):
     def forward(
         self, x: torch.Tensor, skipped_x: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        x = self.t_conv(x)
+        x = self.conv(x)
         x = self.pad_on_upscale(x, skipped_x)
         skipped_x = self.pad_on_upscale(skipped_x, x)
-        return self.conv(torch.cat((x, skipped_x), 1))
+        return torch.cat((x, skipped_x), 1)  # type: ignore
+
+
+class DecoderBlock(torch.nn.Module):
+
+    def __init__(self, out_size, squeeze_excitation, dropout) -> None:
+        super(DecoderBlock, self).__init__()
+        self.conv = ConvLayer(2 * out_size, out_size, squeeze_excitation, dropout)
+
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        return self.conv(x)
 
 
 class AutoEncoder(torch.nn.Module):
@@ -132,6 +141,9 @@ class AutoEncoder(torch.nn.Module):
         squeeze_excitation=False,
         dropout=False,
         sigmoid_last_activation=False,
+        inject_layer_class: Optional[torch.nn.Module] = None,
+        inject_layer_kwargs={},
+        inject_layer_depth=0,
     ) -> None:
         super(AutoEncoder, self).__init__()
         self.encoder = torch.nn.ModuleList(
@@ -161,11 +173,37 @@ class AutoEncoder(torch.nn.Module):
                 )
             ]
         )
+        self.inject_layer_class = inject_layer_class
+        if inject_layer_class:
+            self.injected_layers = torch.nn.ModuleList(
+                [
+                    torch.nn.Sequential(
+                        *[
+                            inject_layer_class(
+                                2 * first_output * (2 ** (min(d - 1, max_exp))),
+                                attn_heads=2 ** (d - 1),
+                                **inject_layer_kwargs
+                            )
+                            for _ in range(inject_layer_depth)
+                        ]
+                    )
+                    for d in range(1, depth)
+                ][::-1]
+            )
+
+        self.fuse = torch.nn.ModuleList(
+            [
+                FuseBlock(
+                    first_output * (2 ** min(d, max_exp)),
+                    first_output * (2 ** (min(d - 1, max_exp))),
+                )
+                for d in range(1, depth)
+            ][::-1]
+        )
 
         self.decoder = torch.nn.ModuleList(
             [
                 DecoderBlock(
-                    first_output * (2 ** min(d, max_exp)),
                     first_output * (2 ** (min(d - 1, max_exp))),
                     squeeze_excitation,
                     dropout,
@@ -178,7 +216,7 @@ class AutoEncoder(torch.nn.Module):
             torch.nn.ConvTranspose2d(
                 first_output, channels, kernel_size=3, stride=1, padding=1
             ),
-            torch.nn.ReLU() if sigmoid_last_activation else torch.nn.Sigmoid(),
+            torch.nn.Sigmoid() if sigmoid_last_activation else torch.nn.ReLU(),
         )
 
     def forward(self, images: torch.Tensor) -> torch.Tensor:
@@ -191,6 +229,9 @@ class AutoEncoder(torch.nn.Module):
 
         for i, module in enumerate(self.decoder):
             upsampled = encoder_outs[-(i + 2)]
-            x = module(x, upsampled)
+            x = self.fuse[i](x, upsampled)
+            if self.inject_layer_class:
+                x = x + self.injected_layers[i](x)
+            x = module(x)
 
         return self.output(x)
