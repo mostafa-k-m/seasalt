@@ -19,7 +19,7 @@ class HybridModel(torch.nn.Module):
             enable_fft=False,
             enable_anisotropic=True,
             auto_encoder_depth=5,
-            transformer_refinement_depth=4,
+            transformer_depth=6,
         )
         if denoiser_weights_path:
             denoiser_model.load_state_dict(

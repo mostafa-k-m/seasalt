@@ -17,7 +17,7 @@ class SaltNetOneStageHandler:
             self.device = torch.device("cuda")
         else:
             self.device = torch.device("cpu")
-
+        print(self.device)
         self.denoiser = HybridModel(denoiser_weights_path=None)
         self.denoiser.to(self.device)
         self.denoiser.load_state_dict(

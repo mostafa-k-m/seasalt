@@ -1,5 +1,3 @@
-import math
-
 import torch
 import torch.nn.functional as F
 
@@ -318,7 +316,7 @@ class DenoiseNet(torch.nn.Module):
         seconv_depth=7,
         fft_depth=7,
         anisotropic_depth=5,
-        transformer_refinement_depth=4,
+        transformer_depth=10,
         filters=48,
         chnl_expansion_factor=2.66,
         enable_seconv=True,
@@ -367,17 +365,17 @@ class DenoiseNet(torch.nn.Module):
             inject_layer_kwargs={
                 "chnl_expansion_factor": chnl_expansion_factor,
             },
-            inject_layer_depth=4,
+            inject_layer_depth=6,
         )
 
         self.transformer_refinement_blocks = torch.nn.Sequential(
             *[
                 TransformerBlock(
                     filters=filters,
-                    attn_heads=1,
+                    attn_heads=2 ** ((d + 1) // 3),
                     chnl_expansion_factor=chnl_expansion_factor,
                 )
-                for d in range(transformer_refinement_depth)
+                for d in range(transformer_depth)
             ]
         )
 
@@ -385,7 +383,7 @@ class DenoiseNet(torch.nn.Module):
             torch.nn.ConvTranspose2d(
                 filters, channels, kernel_size=3, stride=1, padding=1
             ),
-            torch.nn.LeakyReLU(),
+            torch.nn.ReLU(),
         )
 
     def forward(self, noisy_images: torch.Tensor) -> torch.Tensor:
@@ -406,5 +404,4 @@ class DenoiseNet(torch.nn.Module):
         embeddings = self.cnn_embeddings_layer(torch.cat(outputs, 1))
         embeddings = self.unet_post_processing(embeddings)
         embeddings = embeddings + self.transformer_refinement_blocks(embeddings)
-        output = self.output(embeddings)
-        return output
+        return self.output(embeddings)

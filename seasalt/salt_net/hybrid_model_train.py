@@ -53,7 +53,7 @@ def train_loop_step(
             pred_images = model(noisy_images)
             train_loss = criterion(pred_images, target_images)
             train_loss.backward()
-            if ((step + 1) % 30 == 0) or (step == (len(train_dataloader) - 1)):
+            if ((step + 1) % 2 == 0) or (step == (len(train_dataloader) - 1)):
                 optimizer.step()
                 optimizer.zero_grad()
             epoch_train_running_loss += train_loss.item()
@@ -80,7 +80,7 @@ def test_loop_step(
     epoch_psnr_running_score = 0
     with progress_bar:
         task = progress_bar.add_task(
-            description=f"[blue]Train Epoch #{epoch+1}",
+            description=f"[blue]Validation Epoch #{epoch+1}",
             total=len(val_dataloader),
         )
         with torch.no_grad():
@@ -149,7 +149,8 @@ def train_loop(
     tensor_board_dataset: Optional[DataLoader] = None,
 ) -> None:
     model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+    lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=1e-6)
     criterion = torch.nn.L1Loss()
     writer = SummaryWriter(log_dir=f".runs/{run_name}")
     tensor_board_dataset_iterator = iter(tensor_board_dataset)  # type: ignore
@@ -184,3 +185,4 @@ def train_loop(
             epoch,
         )
         save_model_weights(model, run_name, epoch)
+        lr_scheduler.step()

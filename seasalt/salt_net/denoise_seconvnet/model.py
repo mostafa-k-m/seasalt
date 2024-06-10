@@ -134,7 +134,7 @@ class SeConvDesnoiseNet(torch.nn.Module):
 
     def forward(self, noisy_images: torch.Tensor) -> torch.Tensor:
         mask = torch.logical_or(noisy_images == 0, noisy_images == 255).float()
-        noisy_clone = noisy_images.clone()
+        noisy_clone = noisy_images
         noisy_clone[mask == 1] = 0
         x = noisy_clone
 
