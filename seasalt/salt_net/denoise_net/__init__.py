@@ -4,7 +4,6 @@ from .model import (
     FFTBlock,
     OutputBlock,
     SeConvBlock,
-    TransformerLayer,
 )
 
 __all__ = [
@@ -13,5 +12,4 @@ __all__ = [
     "FFTBlock",
     "OutputBlock",
     "SeConvBlock",
-    "TransformerLayer",
 ]

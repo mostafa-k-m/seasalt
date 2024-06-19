@@ -124,22 +124,15 @@ class AnisotropicDiffusionBlock(torch.nn.Module):
         return self.conv(self.diffuse(img))
 
 
-class LayerNorm(torch.nn.Module):
-    def __init__(self, normalized_shape):
-        super(LayerNorm, self).__init__()
-        self.weight = torch.nn.Parameter(torch.ones((normalized_shape,)))
-        self.bias = torch.nn.Parameter(torch.zeros((normalized_shape,)))
-
-    def normalize(self, x):
-        mu = x.mean(-1, keepdim=True)
-        sigma = x.var(-1, keepdim=True, unbiased=False)
-        return (x - mu) / torch.sqrt(sigma + 1e-5) * self.weight + self.bias
+class NormReshapeLayer(torch.nn.Module):
+    def __init__(self, filters):
+        super(NormReshapeLayer, self).__init__()
+        self.norm = torch.nn.LayerNorm(filters)
 
     def forward(self, x):
         b, c, h, w = x.shape
-        x = x.reshape(b, h * w, c)  # reshape to 3 dims
-        x = self.normalize(x)
-        return x.reshape(b, c, h, w)  # reshape to 4 dims
+        normalized = self.norm(x.reshape(b, c, -1).transpose(-2, -1).contiguous())
+        return normalized.transpose(-2, -1).contiguous().reshape(b, c, h, w)
 
 
 class MDTA(torch.nn.Module):
@@ -159,32 +152,32 @@ class MDTA(torch.nn.Module):
         )
         self.project_out = torch.nn.Conv2d(filters, filters, kernel_size=1, bias=False)
 
-    def forward(self, x):
+    def get_qkv(self, x):
         b, c, h, w = x.shape
-        qkv = self.qkv_dwconv(self.qkv(x))
-        q, k, v = qkv.chunk(3, dim=1)
-        chnls_per_head = c // self.num_heads
-        q = q.reshape(b, self.num_heads, chnls_per_head, h * w)
-        k = k.reshape(b, self.num_heads, chnls_per_head, h * w)
-        v = v.reshape(b, self.num_heads, chnls_per_head, h * w)
+        q, k, v = self.qkv_dwconv(self.qkv(x)).chunk(3, dim=1)
+        q = q.reshape(b, self.num_heads, -1, h * w)
+        k = k.reshape(b, self.num_heads, -1, h * w)
+        v = v.reshape(b, self.num_heads, -1, h * w)
         q = torch.nn.functional.normalize(q, dim=-1)
         k = torch.nn.functional.normalize(k, dim=-1)
-        attn = (q @ k.transpose(-2, -1)) * self.temperature
-        attn = attn.softmax(dim=-1)
+        return k,q,v
+    
+    def forward(self, x):
+        b, c, h, w = x.shape
+        q,k,v = self.get_qkv(x)
+        attn = torch.softmax((q @ k.transpose(-2, -1)) * self.temperature, dim=-1)
         out = attn @ v
-        out = out.reshape(b, self.num_heads * chnls_per_head, h, w)
-        return self.project_out(out)
+        return self.project_out(out.reshape(b, -1, h, w))
 
 
 class GDFN(torch.nn.Module):
     def __init__(self, filters, chnl_expansion_factor):
         super(GDFN, self).__init__()
-
         hidden_features = int(filters * chnl_expansion_factor)
         self.project_in = torch.nn.Conv2d(
             filters, hidden_features * 2, kernel_size=1, bias=False
         )
-        self.dconv = torch.nn.Conv2d(
+        self.conv = torch.nn.Conv2d(
             hidden_features * 2,
             hidden_features * 2,
             kernel_size=3,
@@ -198,13 +191,12 @@ class GDFN(torch.nn.Module):
         )
 
     def forward(self, x):
-        x = self.project_in(x)
-        x1, x2 = self.dconv(x).chunk(2, dim=1)
-        x = F.gelu(x1) * x2
-        return self.project_out(x)
+        x1, x2 = self.conv(self.project_in(x)).chunk(2, dim=1)
+        x = self.project_out(F.gelu(x1) * x2)
+        return x
 
 
-class TransformerLayer(torch.nn.Module):
+class TransformerBlock(torch.nn.Module):
 
     def __init__(
         self,
@@ -212,10 +204,10 @@ class TransformerLayer(torch.nn.Module):
         attn_heads,
         chnl_expansion_factor,
     ):
-        super(TransformerLayer, self).__init__()
-        self.norm1 = LayerNorm(filters)
+        super(TransformerBlock, self).__init__()
+        self.norm1 = NormReshapeLayer(filters)
         self.attn = MDTA(filters, attn_heads)
-        self.norm2 = LayerNorm(filters)
+        self.norm2 = NormReshapeLayer(filters)
         self.ffn = GDFN(filters, chnl_expansion_factor)
 
     def forward(self, x):
@@ -278,7 +270,7 @@ class DenoiseNet(torch.nn.Module):
 
         self.transformer_layers = torch.nn.ModuleList(
             [
-                TransformerLayer(
+                TransformerBlock(
                     filters=filters,
                     attn_heads=2 ** ((d + 1) // 3),
                     chnl_expansion_factor=chnl_expansion_factor,
