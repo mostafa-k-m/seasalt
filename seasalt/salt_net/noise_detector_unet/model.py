@@ -131,7 +131,6 @@ class AutoEncoder(torch.nn.Module):
         create_embeddings=True,
         squeeze_excitation=False,
         dropout=False,
-        sigmoid_last_activation=False,
     ) -> None:
         super(AutoEncoder, self).__init__()
         self.encoder = torch.nn.ModuleList(
@@ -178,7 +177,7 @@ class AutoEncoder(torch.nn.Module):
             torch.nn.ConvTranspose2d(
                 first_output, channels, kernel_size=3, stride=1, padding=1
             ),
-            torch.nn.ReLU() if sigmoid_last_activation else torch.nn.Sigmoid(),
+            torch.nn.Sigmoid(),
         )
 
     def forward(self, images: torch.Tensor) -> torch.Tensor:
