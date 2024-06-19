@@ -362,10 +362,10 @@ class DenoiseNet(torch.nn.Module):
             auto_encoder_depth,
             create_embeddings=False,
             inject_layer_class=TransformerBlock,  # type: ignore
-            inject_layer_kwargs={
+            inject_layer_kwargs={  # type: ignore
                 "chnl_expansion_factor": chnl_expansion_factor,
             },
-            inject_layer_depth=6,
+            inject_layer_depth=6,  # type: ignore
         )
 
         self.transformer_refinement_blocks = torch.nn.Sequential(
