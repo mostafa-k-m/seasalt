@@ -24,7 +24,7 @@ data_folder = root_folder.joinpath("data").joinpath("train").resolve()
 
 
 class AugmentedDataset(datasets.ImageFolder):
-    def __init__(self, root, transform=None, n_patches_per_image=640):
+    def __init__(self, root, transform=None, n_patches_per_image=100):
         super(AugmentedDataset, self).__init__(root, transform=transform)
         classes, class_to_idx = self.find_classes(self.root)
         self.n_patches_per_image = n_patches_per_image

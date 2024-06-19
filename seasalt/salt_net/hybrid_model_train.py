@@ -4,8 +4,8 @@ import torch
 import torch.optim as optim
 from rich.progress import (
     BarColumn,
-    SpinnerColumn,
     Progress,
+    SpinnerColumn,
     TaskProgressColumn,
     TimeElapsedColumn,
     TimeRemainingColumn,
@@ -37,7 +37,7 @@ progress_bar = Progress(
 
 
 def train_loop_step(
-    model, train_dataloader, device, optimizer, criterion, writer, epoch
+    model, train_dataloader, device, optimizer, criterion, lr_scheduler, writer, epoch
 ):
     train_loss = 0
     model.train()
@@ -56,6 +56,7 @@ def train_loop_step(
             if ((step + 1) % 2 == 0) or (step == (len(train_dataloader) - 1)):
                 optimizer.step()
                 optimizer.zero_grad()
+                lr_scheduler.step()
             epoch_train_running_loss += train_loss.item()
             progress_bar.update(task, advance=1)
     epoch_train_loss_mean = epoch_train_running_loss / (step + 1)
@@ -80,7 +81,7 @@ def test_loop_step(
     epoch_psnr_running_score = 0
     with progress_bar:
         task = progress_bar.add_task(
-            description=f"[blue]Train Epoch #{epoch+1}",
+            description=f"[blue]Validation Epoch #{epoch+1}",
             total=len(val_dataloader),
         )
         with torch.no_grad():
@@ -149,13 +150,23 @@ def train_loop(
     tensor_board_dataset: Optional[DataLoader] = None,
 ) -> None:
     model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    criterion = MixL1SSIMLoss()
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=1e-4)
+    lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=num_epochs // 2, eta_min=1e-5
+    )
+    criterion = torch.nn.L1Loss()
     writer = SummaryWriter(log_dir=f".runs/{run_name}")
     tensor_board_dataset_iterator = iter(tensor_board_dataset)  # type: ignore
     for epoch in range(num_epochs):
         epoch_train_loss_mean = train_loop_step(
-            model, train_dataloader, device, optimizer, criterion, writer, epoch
+            model,
+            train_dataloader,
+            device,
+            optimizer,
+            criterion,
+            lr_scheduler,
+            writer,
+            epoch,
         )
         epoch_test_loss_mean, epoch_ssim_score_mean, epoch_psnr_score_mean = (
             test_loop_step(model, val_dataloader, device, criterion, writer, epoch)
