@@ -160,11 +160,11 @@ class MDTA(torch.nn.Module):
         v = v.reshape(b, self.num_heads, -1, h * w)
         q = torch.nn.functional.normalize(q, dim=-1)
         k = torch.nn.functional.normalize(k, dim=-1)
-        return k,q,v
-    
+        return k, q, v
+
     def forward(self, x):
         b, c, h, w = x.shape
-        q,k,v = self.get_qkv(x)
+        q, k, v = self.get_qkv(x)
         attn = torch.softmax((q @ k.transpose(-2, -1)) * self.temperature, dim=-1)
         out = attn @ v
         return self.project_out(out.reshape(b, -1, h, w))
@@ -268,20 +268,30 @@ class DenoiseNet(torch.nn.Module):
 
         self.cnn_embeddings_layer = ConvBlock(n_outputs * channels, filters)
 
-        self.transformer_layers = torch.nn.ModuleList(
-            [
-                TransformerBlock(
-                    filters=filters,
-                    attn_heads=2 ** ((d + 1) // 3),
-                    chnl_expansion_factor=chnl_expansion_factor,
-                )
-                for d in range(transformer_depth)
-            ]
-        )
+        if transformer_depth:
+            self.transformer_layers = torch.nn.ModuleList(
+                [
+                    TransformerBlock(
+                        filters=filters,
+                        attn_heads=2 ** ((d + 1) // 3),
+                        chnl_expansion_factor=chnl_expansion_factor,
+                    )
+                    for d in range(transformer_depth)
+                ]
+            )
+        else:
+            self.transformer_layers = None
 
         if self.enable_unet_post_processing:
             self.unet_post_processing = AutoEncoder(
                 channels, filters, auto_encoder_depth, create_embeddings=False
+            )
+        else:
+            self.output_layer = torch.nn.Sequential(
+                torch.nn.ConvTranspose2d(
+                    filters, channels, kernel_size=3, stride=1, padding=1
+                ),
+                torch.nn.Sigmoid(),
             )
 
     def forward(self, noisy_images: torch.Tensor) -> torch.Tensor:
@@ -303,8 +313,11 @@ class DenoiseNet(torch.nn.Module):
                 x_anisotropic = module(x_anisotropic)
             outputs.append(x_anisotropic)
         embeddings = self.cnn_embeddings_layer(torch.cat(outputs, 1))
-        for module in self.transformer_layers:
-            embeddings = embeddings + module(embeddings)
+        if self.transformer_layers:
+            for module in self.transformer_layers:
+                embeddings = embeddings + module(embeddings)
         if self.enable_unet_post_processing:
             output = self.unet_post_processing(embeddings)
+        else:
+            output = self.output_layer(embeddings)
         return output
