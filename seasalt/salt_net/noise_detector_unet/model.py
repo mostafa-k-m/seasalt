@@ -7,24 +7,31 @@ class SqueezeExcitation(torch.nn.Module):
     def __init__(self, filter_size, ratio):
         super().__init__()
         self.avgpool = torch.nn.AdaptiveAvgPool2d(1)
-        self.linear = torch.nn.Sequential(
-            torch.nn.Linear(filter_size, filter_size // ratio),
-            torch.nn.ReLU(inplace=True),
-            torch.nn.Linear(filter_size // ratio, filter_size),
+        self.se_layer = torch.nn.Sequential(
+            torch.nn.Conv2d(
+                filter_size, filter_size // ratio, kernel_size=1, padding=0
+            ),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(
+                filter_size // ratio, filter_size, kernel_size=1, padding=0
+            ),
             torch.nn.Sigmoid(),
         )
 
     def forward(self, x):
         b, c, _, _ = x.size()
         y = self.avgpool(x).view(b, c)
-        y = self.linear(y).view(b, c, 1, 1)
+        y = self.se_layer(y.view(b, c, 1, 1))
         return x * y.expand_as(x)
 
 
 class ConvLayer(torch.nn.Module):
     def __init__(self, in_size, out_size, squeeze_excitation, dropout) -> None:
         super(ConvLayer, self).__init__()
-
+        if squeeze_excitation:
+            self.squeeze_excitation = SqueezeExcitation(in_size, 16)
+        else:
+            self.squeeze_excitation = None
         self.conv = torch.nn.Sequential(
             torch.nn.Conv2d(in_size, out_size, kernel_size=3, padding="same"),
             torch.nn.BatchNorm2d(out_size),
@@ -36,20 +43,15 @@ class ConvLayer(torch.nn.Module):
             torch.nn.ReLU(),
         )
 
-        if squeeze_excitation:
-            self.squeeze_excitation = SqueezeExcitation(out_size, 8)
-        else:
-            self.squeeze_excitation = None
-
         if dropout:
             self.dropout = torch.nn.Dropout2d(p=0.2)
         else:
             self.dropout = None
 
     def forward(self, images: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        conv_out = self.conv(images)
         if self.squeeze_excitation:
-            conv_out = self.squeeze_excitation(conv_out)
+            images = self.squeeze_excitation(images)
+        conv_out = self.conv(images)
         if self.dropout:
             conv_out = self.dropout(conv_out)
         return conv_out

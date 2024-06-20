@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 
 from ..denoise_seconvnet import ConvBlock, OutputBlock, SeConvBlock
-from ..noise_detector_unet import AutoEncoder
+from ..noise_detector_unet import AutoEncoder, ConvLayer
 
 
 class FFTBlock(torch.nn.Module):
@@ -285,11 +285,11 @@ class DenoiseNet(torch.nn.Module):
                 channels, filters, auto_encoder_depth, create_embeddings=False
             )
         else:
-            self.output_layer = torch.nn.Sequential(
-                torch.nn.ConvTranspose2d(
-                    filters, channels, kernel_size=3, stride=1, padding=1
-                ),
-                torch.nn.Sigmoid(),
+            self.output_layer = ConvLayer(
+                in_size=filters,
+                out_size=channels,
+                squeeze_excitation=True,
+                dropout=False,
             )
 
     def forward(self, noisy_images: torch.Tensor) -> torch.Tensor:
