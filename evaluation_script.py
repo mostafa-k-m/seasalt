@@ -21,14 +21,24 @@ from seasalt.salt_net import (
 
 warnings.filterwarnings("ignore")
 
-path_to_images_1 = Path("TTI20_OTHER").resolve()
-path_to_images_2 = Path("BSD68_OTHER").resolve()
-image_datasets = [glob(str(path_to_images_1 / "*")), glob(str(path_to_images_2 / "*"))]
+path_to_images_1 = Path("data/Kodak24").resolve()
+path_to_images_2 = Path("data/BSD68").resolve()
+path_to_images_3 = Path("data/Set12").resolve()
+path_to_images_4 = Path("data/Urban100/X2 Urban100/X2/HIGH X2 Urban").resolve()
 
-model = SaltNetOneStageHandler(denoiser_path="hybrid_non_gaussian2.pt")
+image_datasets = [
+    glob(str(path_to_images_1 / "*")),
+    glob(str(path_to_images_2 / "*")),
+    glob(str(path_to_images_3 / "*")),
+    glob(str(path_to_images_4 / "*")),
+]
+
+model = SaltNetOneStageHandler(
+    denoiser_path="./models/pytorch_transformers_instead_of_cnn_64_36.h5"
+)
 
 root_path = Path("eval").resolve()
-eval_exp_name = "hybrid_model"
+eval_exp_name = "transformers_instead_of_cnn_64"
 
 
 def apply_transformation(
@@ -40,14 +50,14 @@ def apply_transformation(
 ):
     im_gs = im.convert("L")
     arr = np.array(im_gs)
-    seasoned_image = noise_adder_numpy(arr, noise_parameter, noise_type) / 255
+    seasoned_image = noise_adder_numpy(arr, noise_parameter, noise_type)
     corrected_img = model.predict(seasoned_image).astype(np.uint8)
     if save_path:
         plt.axis("off")
         full_save_path = root_path / eval_exp_name / save_path
         full_save_path.mkdir(parents=True, exist_ok=True)
         plot_before_after_and_original(
-            arr, (seasoned_image * 255).astype(np.uint8), corrected_img
+            arr, (seasoned_image).astype(np.uint8), corrected_img
         )
         plt.savefig(full_save_path / "transformation.png")
         plt.close()
@@ -85,27 +95,26 @@ def plot_exp_snr(df_eq, metric, dataset_save_path):
     plt.close()
 
 
-def run_evaluation_loop(image_datasets, noise_type):
-    data_dict_psnr = dict(im_index=[], noise_parameter=[], PSNR=[])
-    data_dict_ssim = dict(im_index=[], noise_parameter=[], SSIM=[])
+def run_evaluation_loop(image_datasets, noise_type, noise_parameters):
     with Progress() as progress:
-        noise_parameters = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
         for ix, image_paths in enumerate(image_datasets):
             task = progress.add_task(
                 f"Running {noise_type.name} Evalution (Dataset {ix})...",
                 total=len(image_paths) * len(noise_parameters),
             )
+            data_dict_psnr = dict(im_index=[], noise_parameter=[], PSNR=[])
+            data_dict_ssim = dict(im_index=[], noise_parameter=[], SSIM=[])
             for p in image_paths:
                 img_name = p.split("/")[-1].split(".")[0]
                 for noise_parameter in noise_parameters:
                     im = Image.open(p)
                     arr, corrected_img = apply_transformation(
                         im,
-                        noise_parameter=noise_parameter,
+                        noise_parameter=noise_parameter / 255,
                         noise_type=noise_type,
-                        save_path=f"{noise_type.name}/{p.split('/')[-2].split('_')[0]}/"
+                        save_path=f"{noise_type.name}/{p.split('data/')[1].split('/')[0]}/"
                         f"{p.split('/')[-1].split('.')[0]}"
-                        f"/{int(noise_parameter*100)}",
+                        f"/{noise_parameter}",
                     )
                     arr = arr[: corrected_img.shape[0], : corrected_img.shape[1]]
                     data_dict_psnr["im_index"].append(img_name)
@@ -124,7 +133,7 @@ def run_evaluation_loop(image_datasets, noise_type):
                 root_path
                 / eval_exp_name
                 / noise_type.name
-                / f'{p.split("/")[-2].split("_")[0]}'
+                / f"{p.split('data/')[1].split('/')[0]}"
             )
             save_agg_results(data_dict_psnr, dataset_save_path, "PSNR")
             save_agg_results(data_dict_ssim, dataset_save_path, "SSIM")
@@ -137,7 +146,21 @@ def save_agg_results(data_dict_eq, dataset_save_path, metric):
     plot_exp_snr(df_eq, metric, dataset_save_path)
 
 
-run_evaluation_loop(image_datasets, NoiseType.SAP)
-run_evaluation_loop(image_datasets, NoiseType.BERNOULLI)
-run_evaluation_loop(image_datasets, NoiseType.POISSON)
-run_evaluation_loop(image_datasets, NoiseType.GUASSIAN)
+run_evaluation_loop(
+    image_datasets, NoiseType.GUASSIAN, noise_parameters=[15, 25, 50, 60]
+)
+run_evaluation_loop(
+    image_datasets,
+    NoiseType.SAP,
+    noise_parameters=[150, 160, 170, 180, 190, 200, 210, 220, 230, 240],
+)
+run_evaluation_loop(
+    image_datasets,
+    NoiseType.BERNOULLI,
+    noise_parameters=[150, 160, 170, 180, 190, 200, 210, 220, 230, 240],
+)
+run_evaluation_loop(
+    image_datasets,
+    NoiseType.POISSON,
+    noise_parameters=[150, 160, 170, 180, 190, 200, 210, 220, 230, 240],
+)
