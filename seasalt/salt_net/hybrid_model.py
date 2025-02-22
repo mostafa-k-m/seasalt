@@ -12,40 +12,25 @@ else:
 
 
 class HybridModel(torch.nn.Module):
-    def __init__(self, denoiser_weights_path, detector_weights_path):
-        super(HybridModel, self).__init__()
-        denoiser_model = DenoiseNet(
-            enable_seconv=True,
-            enable_anti_seconv=False,
-            enable_unet=False,
+    def __init__(self, denoiser_weights_path,
+                             enable_seconv=True,
             enable_fft=False,
             enable_anisotropic=True,
             enable_unet_post_processing=True,
-            output_cnn_depth=10,
-            max_filters=64,
-            refinement_transformer_n_blocks=4,
-            refinement_transformer_num_heads=1,
-            refinement_transformer_chnl_expansion_factor=2,
-            enable_refinement_transformer=True,
+            transformer_depth=10,):
+        super(HybridModel, self).__init__()
+        denoiser_model = DenoiseNet(
+            enable_seconv=True,
+            enable_fft=False,
+            enable_anisotropic=True,
+            enable_unet_post_processing=True,
+            transformer_depth=10,
         )
         if denoiser_weights_path:
             denoiser_model.load_state_dict(
                 torch.load(denoiser_weights_path, device),
             )
-        noise_detecor_model = AutoEncoder(
-            squeeze_excitation=True, dropout=True, sigmoid_last_activation=True
-        )
-        if detector_weights_path:
-            noise_detecor_model.load_state_dict(
-                torch.load(detector_weights_path, device),
-            )
-
         self.denoiser = denoiser_model.to(device)
-        self.detecor = noise_detecor_model.to(device)
 
     def forward(self, images: torch.Tensor) -> torch.Tensor:
-        masks = self.detecor(images)
-        return self.denoiser(
-            images,
-            torch.round(masks),
-        )
+        return self.denoiser(images)

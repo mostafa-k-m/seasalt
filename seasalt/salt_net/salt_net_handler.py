@@ -12,16 +12,23 @@ models_folder = root_folder.joinpath("models")
 
 
 class SaltNetOneStageHandler:
-    def __init__(self, denoiser_path="hybrid.pt"):
-        if torch.cuda.is_available():
+    def __init__(self, denoiser_path="hybrid.pt", use_cuda=True,
+    enable_seconv=True,
+    enable_fft=False,
+    enable_anisotropic=True,
+    enable_unet_post_processing=True,
+    transformer_depth=10,):
+        if torch.cuda.is_available() and use_cuda:
             self.device = torch.device("cuda")
         else:
-            self.device = torch.device("cpu")
-
-        self.denoiser = HybridModel(
-            denoiser_weights_path=None,
-            detector_weights_path=None,
-        )
+            self.device = torch.device("mps")
+        print(self.device)
+        self.denoiser = HybridModel(denoiser_weights_path=None,
+enable_seconv=enable_seconv,
+enable_fft=enable_fft,
+enable_anisotropic=enable_anisotropic,
+enable_unet_post_processing=enable_unet_post_processing,
+transformer_depth=transformer_depth,)
         self.denoiser.to(self.device)
         self.denoiser.load_state_dict(
             torch.load(denoiser_path, self.device),
@@ -51,7 +58,12 @@ class SaltNetOneStageHandler:
 
     def predict(self, data):
         return (
-            self.inference(self.preprocess(data)).squeeze().squeeze().detach().numpy()
+            self.inference(self.preprocess(data))
+            .squeeze()
+            .squeeze()
+            .detach()
+            .cpu()
+            .numpy()
             * 255
         )
 

@@ -27,8 +27,8 @@ from .plotting_utils import (
     plot_single_image,
 )
 from .processing import (
-    NoiseType,
     DataLoadersInitializer,
+    NoiseType,
     noise_adder,
     noise_adder_numpy,
 )

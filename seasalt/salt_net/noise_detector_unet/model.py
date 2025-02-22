@@ -128,13 +128,21 @@ class AutoEncoder(torch.nn.Module):
         first_output=64,
         depth=5,
         max_exp=5,
+        create_embeddings=True,
         squeeze_excitation=False,
         dropout=False,
         sigmoid_last_activation=False,
     ) -> None:
         super(AutoEncoder, self).__init__()
         self.encoder = torch.nn.ModuleList(
-            [EncoderBlock(channels, first_output, squeeze_excitation, dropout)]
+            [
+                EncoderBlock(
+                    channels if create_embeddings else first_output,
+                    first_output,
+                    squeeze_excitation,
+                    dropout,
+                )
+            ]
             + [
                 EncoderBlock(
                     first_output * (2 ** (min(d - 1, max_exp))),

@@ -12,7 +12,7 @@ from torchvision import datasets, transforms
 
 from .noise_adders import NoiseType, noise_adder
 
-PATCH_SIZE, STRIDE = 64, 32
+PATCH_SIZE, STRIDE = 64, 10
 SCALES = [1, 0.9, 0.8, 0.7]
 torch.manual_seed(101)
 np.random.seed(101)
@@ -20,11 +20,11 @@ np.random.seed(101)
 
 root_folder = Path().resolve()
 
-data_folder = root_folder.joinpath("data").joinpath("DFWB").resolve()
+data_folder = root_folder.joinpath("data").joinpath("train").resolve()
 
 
 class AugmentedDataset(datasets.ImageFolder):
-    def __init__(self, root, transform=None, n_patches_per_image=3):
+    def __init__(self, root, transform=None, n_patches_per_image=640):
         super(AugmentedDataset, self).__init__(root, transform=transform)
         classes, class_to_idx = self.find_classes(self.root)
         self.n_patches_per_image = n_patches_per_image
@@ -33,7 +33,7 @@ class AugmentedDataset(datasets.ImageFolder):
         )
         self.targets = [s[1] for s in self.samples]
         self.last_index = -1
-        self.cached_batch = []
+        self.patches = {}
 
     def __len__(self) -> int:
         return len(self.samples) * self.n_patches_per_image
@@ -79,7 +79,7 @@ class AugmentedDataset(datasets.ImageFolder):
             ):
                 x = img_scaled[:, i : i + PATCH_SIZE, j : j + PATCH_SIZE]
                 patches.append(self.data_augmenter(x, mode=np.random.randint(0, 8)))
-        return patches
+        return random.choices(patches, k=self.n_patches_per_image)
 
     @staticmethod
     def make_dataset(
@@ -93,18 +93,21 @@ class AugmentedDataset(datasets.ImageFolder):
         )
 
     def patch_handler(self, index: int):
-        path, _ = self.samples[index]
-        sample = self.loader(path)
-        if self.transform is not None:
-            sample = self.transform(sample)
-        return self.patch_generator(sample)
+        if index not in self.patches:
+            self.loaded_image_index = index
+            path, target = self.samples[index]
+            sample = self.loader(path)
+            if self.transform is not None:
+                sample = self.transform(sample)
+            self.patches[index] = self.patch_generator(sample)
+        return
 
     def __getitem__(self, index: int):
-        cur_index = index // self.n_patches_per_image
-        if self.last_index != cur_index:
-            self.cached_batch = self.patch_handler(index // self.n_patches_per_image)
+        self.patch_handler(index // self.n_patches_per_image)
         return (
-            self.cached_batch[index % self.n_patches_per_image],
+            self.patches[index // self.n_patches_per_image][
+                index % self.n_patches_per_image
+            ],
             0,
         )
 

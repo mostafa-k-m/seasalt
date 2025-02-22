@@ -63,6 +63,7 @@ def noise_adder(
 def _gaussian_noise_adder(
     images: torch.Tensor, noise_parameters: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor]:
+    noise_parameters[((noise_parameters).abs() > (60 / 255))] *= 100 / 255
     noise = torch.stack(
         [
             torch.normal(0, std.item(), images.shape[1:])
