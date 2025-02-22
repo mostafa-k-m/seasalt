@@ -88,21 +88,22 @@ def plot_before_after_and_original(orginal, before_img, after_img, m=255):
         wspace=0,
     )
     axes = gs.subplots(sharex="col", sharey="row")
+    titles = [
+        "Original Image",
+        "Before Image "
+        f"PSNR: {round(peak_signal_noise_ratio(orginal, before_img), 1)} dB, SSIM: "
+        f"{round(structural_similarity(orginal, before_img), 4)}",  # type: ignore
+        "After Image "
+        f"PSNR: {round(peak_signal_noise_ratio(orginal, after_img), 1)} dB, SSIM: "
+        f"{round(structural_similarity(orginal, after_img), 4)}",  # type: ignore
+    ]
     list(map(lambda ax: ax.set_axis_off(), axes.flatten()))
     list(  # type: ignore
         map(
             lambda input: input[0].set_title(input[1]),
             zip(
                 axes.flatten(),
-                [
-                    "Original Image",
-                    "Before Image "
-                    f"PSNR: {round(peak_signal_noise_ratio(orginal, before_img), 1)} dB"
-                    f", SSIM: {round(structural_similarity(orginal, before_img), 4)}",
-                    "After Image "
-                    f"PSNR: {round(peak_signal_noise_ratio(orginal, after_img), 1)} dB"
-                    f", SSIM: {round(structural_similarity(orginal, after_img), 4)}",
-                ],
+                titles,
             ),
         )
     )

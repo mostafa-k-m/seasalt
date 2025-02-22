@@ -12,23 +12,30 @@ models_folder = root_folder.joinpath("models")
 
 
 class SaltNetOneStageHandler:
-    def __init__(self, denoiser_path="hybrid.pt", use_cuda=True,
-    enable_seconv=True,
-    enable_fft=False,
-    enable_anisotropic=True,
-    enable_unet_post_processing=True,
-    transformer_depth=10,):
+    def __init__(
+        self,
+        denoiser_path="hybrid.pt",
+        use_cuda=True,
+        enable_seconv=True,
+        enable_fft=False,
+        enable_anisotropic=True,
+        enable_unet_post_processing=True,
+        transformer_depth=10,
+        fallback_device="mps",
+    ):
         if torch.cuda.is_available() and use_cuda:
             self.device = torch.device("cuda")
         else:
-            self.device = torch.device("mps")
+            self.device = torch.device(fallback_device)
         print(self.device)
-        self.denoiser = HybridModel(denoiser_weights_path=None,
-enable_seconv=enable_seconv,
-enable_fft=enable_fft,
-enable_anisotropic=enable_anisotropic,
-enable_unet_post_processing=enable_unet_post_processing,
-transformer_depth=transformer_depth,)
+        self.denoiser = HybridModel(
+            denoiser_weights_path=None,
+            enable_seconv=enable_seconv,
+            enable_fft=enable_fft,
+            enable_anisotropic=enable_anisotropic,
+            enable_unet_post_processing=enable_unet_post_processing,
+            transformer_depth=transformer_depth,
+        )
         self.denoiser.to(self.device)
         self.denoiser.load_state_dict(
             torch.load(denoiser_path, self.device),
