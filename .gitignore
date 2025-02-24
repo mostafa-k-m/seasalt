@@ -1,7 +1,10 @@
 BSDS300-test
 
 data
-
+.aux
+.out
+.gz
+.pdf
 .runs
 
 models
@@ -17,6 +20,7 @@ __pycache__
 Presentations
 
 *.png
+!paper/assets/*.png
 *.jpg
 *.jpeg
 *.tiff
