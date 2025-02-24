@@ -1,0 +1,13 @@
+The SaltNet network was trained using a dataset of 432 randomly selected grayscale images, as utilized in the SeConvNet paper\cite{Rafiee2021}. To augment the training data, a custom data loader was implemented. This loader extracted $64 \times 64$ pixel patches from the full images with a stride of 10 pixels, significantly increasing the effective dataset size.
+
+To further enhance the robustness and generalization of the model, online data augmentation was applied during training. Each image patch was subjected to a random transformation chosen from the following set:
+
+\begin{itemize}
+    \item Vertical Flip
+    \item Horizontal Flip
+    \item Random Rotation ($90^\circ, 180^\circ, 270^\circ$)
+\end{itemize}
+
+These transformations were applied each with equal probability. The generated patches were then split into training and testing sets, with a 80\%/20\% split.
+
+The SaltNet model was trained for a total of 250 epochs. Optimization was performed using Adam.  The loss function employed was a custom \textbf{MixL1SSIMLoss}, designed to leverage the benefits of both L1 and Multi-Scale Structural Similarity Index Measure (MS-SSIM) metrics\cite{Zhao2017}. This loss function, implemented as a PyTorch module based on\cite{Pessoa2023}, is a linear combination of L1 loss and an MS-SSIM-inspired loss, controlled by a weighting factor $\alpha$ set to 0.84. The MS-SSIM component is approximated using Gaussian kernels of varying sigmas to capture structural similarity at multiple scales, while the L1 component encourages pixel-level accuracy.  This combined loss function aims to achieve a balance between perceptual quality (SSIM) and pixel-wise fidelity (L1).

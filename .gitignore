@@ -1,10 +1,10 @@
 BSDS300-test
 
 data
-.aux
-.out
-.gz
-.pdf
+*.aux
+*.out
+*.gz
+*.pdf
 .runs
 
 models

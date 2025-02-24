@@ -1,0 +1,117 @@
+To dissect the contribution of individual components to SaltNet's overall performance, we conducted an ablation study by systematically removing or reducing key architectural elements.  This analysis allows us to quantify the importance of each module and understand their specific roles in the denoising process.
+
+\subsection{Ablated Model Configurations}
+
+We evaluated the following variants of the SaltNet architecture:
+
+\begin{itemize}
+    \item \textbf{SaltNet (5 Transformer Blocks)}:  This variant reduces the number of Transformer blocks in SaltNet from 10 to 5, while keeping all other components unchanged. This aims to assess the impact of Transformer block depth on performance.
+    \item \textbf{SaltNet w/o Transformer Blocks}:  This variant completely removes the Transformer block stack, evaluating the importance of global attention mechanisms in SaltNet.
+    \item \textbf{SaltNet w/o Anisotropic Diffusion}: In this configuration, the Anisotropic Diffusion branch is removed entirely. This ablation investigates the contribution of the novel anisotropic diffusion blocks in handling different noise types.
+    \item \textbf{SaltNet w/o SeConv}:  Here, the SeConv branch is removed, isolating the effect of the SeConv blocks, which are specifically designed for impulse noise reduction.
+    \item \textbf{SaltNet w/o AutoEncoder}: In this version, the final AutoEncoder post-processing module is removed, allowing us to assess its contribution to the final denoising quality.
+\end{itemize}
+
+All other architectural parameters and training procedures remained consistent with the full SaltNet model described in the previous sections, ensuring a controlled ablation study.
+
+The ablation study followed the same experimental methodology as described in Section \ref{sec:experimental_results}
+
+\subsection{Quantitative Results and Analysis}
+
+Below are the average PSNR and SSIM scores of each ablation experiment (average across all datasets)
+
+It is possible to rank the SaltNet components in terms of highest impact on accuracy as follows:
+
+\begin{itemize}
+\item Transformer Blocks
+\item U-net Module
+\item Seconv Blocks
+\item Anisotropic Diffusion Blocks
+\end{itemize}
+
+\begin{table}[!hbt]
+    \centering
+    \caption{Ablation Study Results - Gaussian Test}
+    \begin{tabular}{lcccccccc}
+    \toprule
+     & \multicolumn{4}{c}{PSNR} & \multicolumn{4}{c}{SSIM} \\
+    \cmidrule(lr){2-5} \cmidrule(lr){6-9}
+     & 15 & 25 & 50 & 60 & 15 & 25 & 50 & 60 \\
+    \midrule
+    5 Transformers & 31.35 & 28.98 & 25.90 & 25.12 & 0.9040 & 0.8541 & 0.7543 & 0.7227 \\
+    No Anisotropic I & 31.26 & 28.93 & 25.85 & 25.07 & 0.9058 & 0.8539 & 0.7532 & 0.7221 \\
+    No Seconv & 30.66 & 28.35 & 25.38 & 24.62 & 0.8992 & 0.8440 & 0.7389 & 0.7063 \\
+    No Transformers & 29.22 & 25.96 & 24.80 & 24.47 & 0.8377 & 0.7337 & 0.7187 & 0.6985 \\
+    No Unet & 30.97 & 28.54 & 25.31 & 24.48 & 0.8924 & 0.8348 & 0.7222 & 0.6864 \\
+    \underline{Baseline} & \underline{31.38} & \underline{29.08} & \underline{25.99} & \underline{25.19} & \underline{0.9057} & \underline{0.8566} & \underline{0.7560} & \underline{0.7242} \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[!hbt]
+    \centering
+    \caption{Ablation Study Results - PSNR}
+    \begin{tabular}{lcccccccccc}
+    \toprule
+    Dataset & 150 & 160 & 170 & 180 & 190 & 200 & 210 & 220 & 230 & 240 \\
+    \midrule
+    \textbf{BERNOULLI} \\
+    5 Transform & 29.70 & 29.08 & 28.45 & 27.78 & 27.09 & 26.33 & 25.50 & 24.55 & 23.43 & 21.97 \\
+    No Anisotropic Block & 29.59 & 29.00 & 28.36 & 27.71 & 27.02 & 26.27 & 25.43 & 24.49 & 23.39 & 21.94 \\
+    No Seconv & 29.59 & 28.98 & 28.33 & 27.64 & 26.91 & 26.16 & 25.31 & 24.37 & 23.26 & 21.82 \\
+    No Transform & 28.52 & 27.95 & 27.36 & 26.74 & 26.08 & 25.37 & 24.60 & 23.71 & 22.68 & 21.32 \\
+    No Unet & 28.72 & 28.10 & 27.47 & 26.79 & 26.08 & 25.32 & 24.51 & 23.58 & 22.52 & 21.20 \\
+    \underline{Baseline} & \underline{30.10} & \underline{29.48} & \underline{28.84} & \underline{28.15} & \underline{27.43} & \underline{26.64} & \underline{25.78} & \underline{24.81} & \underline{23.61} & \underline{22.06} \\
+    \midrule
+    \textbf{POISSON} \\
+    5 Transform & 30.79 & 30.59 & 30.44 & 30.17 & 30.04 & 29.79 & 29.63 & 29.53 & 29.40 & 29.22 \\
+    No Anisotropic Block & 30.82 & 30.60 & 30.46 & 30.21 & 29.98 & 29.86 & 29.63 & 29.53 & 29.39 & 29.17 \\
+    No Seconv & 30.65 & 30.40 & 30.26 & 30.08 & 29.87 & 29.73 & 29.54 & 29.38 & 29.16 & 29.00 \\
+    No Transform & 29.46 & 29.26 & 29.08 & 28.89 & 28.76 & 28.54 & 28.36 & 28.21 & 28.01 & 27.81 \\
+    No Unet & 30.38 & 30.09 & 29.91 & 29.69 & 29.50 & 29.31 & 29.10 & 28.94 & 28.72 & 28.56 \\
+    \underline{Baseline} & \underline{31.48} & \underline{31.19} & \underline{30.99} & \underline{30.83} & \underline{30.58} & \underline{30.34} & \underline{30.16} & \underline{30.00} & \underline{29.79} & \underline{29.54} \\
+    \midrule
+    \textbf{SAP} \\
+    5 Transform & 29.24 & 28.65 & 28.03 & 27.42 & 26.75 & 26.00 & 25.17 & 24.26 & 23.16 & 21.71 \\
+    No Anisotropic Block & 29.20 & 28.59 & 28.00 & 27.35 & 26.65 & 25.94 & 25.12 & 24.18 & 23.07 & 21.65 \\
+    No Seconv & 28.67 & 28.20 & 27.68 & 27.05 & 26.19 & 25.42 & 24.68 & 23.76 & 22.72 & 21.32 \\
+    No Transform & 27.74 & 27.21 & 26.64 & 26.03 & 25.42 & 24.74 & 24.01 & 23.19 & 22.21 & 20.88 \\
+    No Unet & 28.33 & 27.73 & 27.14 & 26.49 & 25.79 & 25.04 & 24.26 & 23.35 & 22.33 & 20.99 \\
+    \underline{Baseline} & \underline{29.87} & \underline{29.27} & \underline{28.64} & \underline{27.97} & \underline{27.25} & \underline{26.49} & \underline{25.62} & \underline{24.65} & \underline{23.47} & \underline{21.90} \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[!hbt]
+    \centering
+    \caption{Ablation Study Results - SSIM}
+    \begin{tabular}{lcccccccccc}
+    \toprule
+    Noise Density & 150 & 160 & 170 & 180 & 190 & 200 & 210 & 220 & 230 & 240 \\
+    \midrule
+    \textbf{BERNOULLI} \\
+    5 Transform & 0.926 & 0.916 & 0.904 & 0.890 & 0.873 & 0.853 & 0.826 & 0.791 & 0.740 & 0.661 \\
+    No Anisotropic Block & 0.925 & 0.916 & 0.904 & 0.889 & 0.873 & 0.852 & 0.826 & 0.790 & 0.740 & 0.661 \\
+    No Seconv & 0.921 & 0.909 & 0.897 & 0.882 & 0.864 & 0.842 & 0.814 & 0.778 & 0.725 & 0.645 \\
+    No Transform & 0.906 & 0.894 & 0.880 & 0.864 & 0.844 & 0.820 & 0.790 & 0.751 & 0.699 & 0.619 \\
+    No Unet & 0.911 & 0.899 & 0.886 & 0.869 & 0.850 & 0.826 & 0.796 & 0.757 & 0.703 & 0.623 \\
+    \underline{Baseline} & \underline{0.930} & \underline{0.921} & \underline{0.909} & \underline{0.896} & \underline{0.880} & \underline{0.860} & \underline{0.835} & \underline{0.800} & \underline{0.750} & \underline{0.671} \\
+    \midrule
+    \textbf{POISSON} \\
+    5 Transform & 0.939 & 0.936 & 0.933 & 0.929 & 0.926 & 0.921 & 0.918 & 0.916 & 0.912 & 0.908 \\
+    No Anisotropic Block & 0.941 & 0.938 & 0.935 & 0.930 & 0.927 & 0.924 & 0.919 & 0.916 & 0.912 & 0.908 \\
+    No Seconv & 0.941 & 0.937 & 0.935 & 0.931 & 0.927 & 0.924 & 0.919 & 0.916 & 0.912 & 0.907 \\
+    No Transform & 0.920 & 0.915 & 0.911 & 0.906 & 0.901 & 0.896 & 0.890 & 0.884 & 0.878 & 0.869 \\
+    No Unet & 0.935 & 0.930 & 0.927 & 0.923 & 0.919 & 0.915 & 0.911 & 0.906 & 0.902 & 0.897 \\
+    \underline{Baseline} & \underline{0.949} & \underline{0.946} & \underline{0.944} & \underline{0.941} & \underline{0.937} & \underline{0.933} & \underline{0.930} & \underline{0.926} & \underline{0.923} & \underline{0.917} \\
+    \midrule
+    \textbf{SAP} \\
+    5 Transform & 0.922 & 0.912 & 0.900 & 0.886 & 0.869 & 0.848 & 0.820 & 0.784 & 0.733 & 0.652 \\
+    No Anisotropic Block & 0.923 & 0.913 & 0.901 & 0.886 & 0.869 & 0.848 & 0.821 & 0.784 & 0.733 & 0.652 \\
+    No Seconv & 0.917 & 0.906 & 0.893 & 0.878 & 0.859 & 0.836 & 0.808 & 0.769 & 0.717 & 0.636 \\
+    No Transform & 0.897 & 0.885 & 0.870 & 0.853 & 0.833 & 0.807 & 0.776 & 0.737 & 0.682 & 0.601 \\
+    No Unet & 0.908 & 0.896 & 0.883 & 0.867 & 0.847 & 0.823 & 0.792 & 0.752 & 0.696 & 0.609 \\
+    \underline{Baseline} & \underline{0.929} & \underline{0.919} & \underline{0.909} & \underline{0.895} & \underline{0.879} & \underline{0.859} & \underline{0.832} & \underline{0.797} & \underline{0.747} & \underline{0.666} \\
+    \bottomrule
+    \end{tabular}
+\end{table}

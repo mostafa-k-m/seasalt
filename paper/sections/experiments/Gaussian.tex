@@ -1,0 +1,54 @@
+\subsubsection{Gaussian Noise}
+
+
+\begin{table}[!hbt]
+    \centering
+    \begin{tabular}{ccccc}
+        \hline
+        & \multicolumn{4}{c}{Gaussian Noise Density} \\
+        & 15 & 25 & 50 & 60 \\
+        \hline
+        Average & 31.38 & 29.08 & 25.99 & 25.19 \\
+        \hline
+        BSD68 & 31.28 & 29.05 & 26.19 & 25.48 \\
+        Kodak24 & 32.27 & 30.21 & 27.46 & 26.74 \\
+        Set 12 & 32.43 & 30.23 & 27.12 & 26.33 \\
+        Urban100 & 31.10 & 28.69 & 25.36 & 24.48 \\        
+        \hline
+    \end{tabular}
+    \caption{SaltNet Detailed PSNR Gaussian Noise Results}
+\end{table}
+
+\begin{table}[!hbt]
+    \centering
+    \begin{tabular}{ccccc}
+        \hline
+        & \multicolumn{4}{c}{Gaussian Noise Density} \\
+        & 15 & 25 & 50 & 60 \\
+        \hline
+        Average & 0.9057 & 0.8566 & 0.7560 & 0.7242 \\
+        \hline
+        BSD68 & 0.8893 & 0.8300 & 0.7192 & 0.6869 \\
+        Kodak24 & 0.8865 & 0.8327 & 0.7342 & 0.7070 \\
+        Set12 & 0.9001 & 0.8611 & 0.7830 & 0.7583 \\
+        Urban100 & 0.9221 & 0.8798 & 0.7831 & 0.7497 \\
+        \hline
+    \end{tabular}
+    \caption{SaltNet Detailed SSIM Gaussian Noise Results}
+\end{table}
+
+\begin{table}[!hbt]
+    \centering
+    \begin{tabular}{ccccc}
+        \hline
+        Alpha & \multicolumn{2}{c}{AVG. PSNR} & \multicolumn{2}{c}{AVG. SSIM} \\
+            & SaltNet & Restormer & SaltNet & Restormer \\
+        \hline
+        15    & \underline{31.38}   & 31.05     & 0.9057  & \underline{0.9075}  \\
+        25    & \underline{29.08}   & 28.87     & \underline{0.8566}  & 0.8562  \\
+        50    & \underline{25.99}   & 25.76     & \underline{0.7560}  & 0.7500  \\
+        60    & \underline{25.19}   & 24.96     & \underline{0.7242}  & 0.7166  \\
+        \hline
+    \end{tabular}
+    \caption{Gaussian Noise SaltNet vs. Restormer Comparison}
+\end{table}

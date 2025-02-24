@@ -1,0 +1,60 @@
+\subsubsection{Poisson Noise}
+
+
+\begin{table}[!hbt]
+    \centering
+    \begin{tabular}{ccccccccccc}
+        \hline
+        & \multicolumn{10}{c}{Poisson Noise Density} \\
+        & 150 & 160 & 170 & 180 & 190 & 200 & 210 & 220 & 230 & 240 \\
+        \hline
+        Average & 31.48 & 31.19 & 30.99 & 30.83 & 30.58 & 30.34 & 30.16 & 30.00 & 29.79 & 29.54 \\
+        \hline
+        BSD68 & 31.95 & 31.64 & 31.48 & 31.30 & 31.03 & 30.89 & 30.65 & 30.52 & 30.37 & 30.11 \\
+        Kodak24 & 33.76 & 33.34 & 33.19 & 32.94 & 32.76 & 32.53 & 32.39 & 32.21 & 31.96 & 31.75 \\
+        Set12 & 34.26 & 34.08 & 33.75 & 33.55 & 33.28 & 33.08 & 32.81 & 32.69 & 32.35 & 32.17 \\
+        Urban100 & 30.27 & 30.03 & 29.80 & 29.69 & 29.43 & 29.12 & 28.97 & 28.79 & 28.57 & 28.31 \\
+        \hline
+    \end{tabular}
+    \caption{SaltNet - Poisson Detailed PSNR Results}
+\end{table}
+
+\begin{table}[!hbt]
+    \centering
+    \begin{tabular}{ccccccccccc}
+        \hline
+        & \multicolumn{10}{c}{Poisson Noise Density} \\
+        & 150 & 160 & 170 & 180 & 190 & 200 & 210 & 220 & 230 & 240 \\
+        \hline
+        Average & 0.9491 & 0.9460 & 0.9438 & 0.9408 & 0.9372 & 0.9328 & 0.9302 & 0.9263 & 0.9232 & 0.9170 \\
+        \hline
+        BSD68 & 0.9433 & 0.9396 & 0.9371 & 0.9330 & 0.9301 & 0.9260 & 0.9220 & 0.9183 & 0.9151 & 0.9081 \\
+        Kodak24 & 0.9648 & 0.9593 & 0.9583 & 0.9549 & 0.9513 & 0.9478 & 0.9451 & 0.9413 & 0.9380 & 0.9301 \\
+        Set12 & 0.9748 & 0.9737 & 0.9721 & 0.9701 & 0.9678 & 0.9647 & 0.9636 & 0.9625 & 0.9590 & 0.9567 \\
+        Urban100 & 0.9462 & 0.9438 & 0.9415 & 0.9391 & 0.9350 & 0.9299 & 0.9283 & 0.9239 & 0.9209 & 0.9152 \\
+        \hline
+    \end{tabular}
+    \caption{SaltNet - Poisson Detailed SSIM Results}
+\end{table}
+
+\begin{table}[!hbt]
+    \centering
+    \begin{tabular}{ccccc}
+        \hline
+        Poisson & \multicolumn{2}{c}{AVG. PSNR} & \multicolumn{2}{c}{AVG. SSIM} \\
+        Noise Density & SaltNet & Restormer & SaltNet & Restormer \\
+        \hline
+        150 & \underline{31.48} & 30.15 & 0.9491 & \underline{0.9512} \\
+        160 & \underline{31.19} & 29.96 & 0.9460 & \underline{0.9482} \\
+        170 & \underline{30.99} & 29.79 & 0.9438 & \underline{0.9459} \\
+        180 & \underline{30.83} & 29.63 & 0.9408 & \underline{0.9429} \\
+        190 & \underline{30.58} & 29.45 & 0.9372 & \underline{0.9404} \\
+        200 & \underline{30.34} & 29.30 & 0.9328 & \underline{0.9376} \\
+        210 & \underline{30.16} & 29.19 & 0.9302 & \underline{0.9352} \\
+        220 & \underline{30.00} & 29.05 & 0.9263 & \underline{0.9328} \\
+        230 & \underline{29.79} & 28.99 & 0.9232 & \underline{0.9303} \\
+        240 & \underline{29.54} & 28.86 & 0.9170 & \underline{0.9277} \\
+        \hline
+    \end{tabular}
+    \caption{Poisson Noise SaltNet vs. Restormer Comparison}
+\end{table}
