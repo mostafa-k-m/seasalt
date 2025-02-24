@@ -1,0 +1,200 @@
+\section*{Experimental Results}
+
+This section details the experimental setup and evaluation of SaltNet's denoising performance in comparison to existing state-of-the-art methods. We conducted a comprehensive evaluation across various noise types, noise levels, and benchmark datasets.
+
+\subsection{Datasets}
+
+The performance of SaltNet was evaluated on four public datasets \textbf{BSD68}\cite{Martin01}, \textbf{Kodak24}\cite{Kodak}, \textbf{Urban100}\cite{Huang2015}, and \textbf{Set12}\cite{Set12}.
+
+\subsection{Noise Simulation and Levels}
+
+Images from the four utilized datasets were corrupted with one of four distinct types of noise: \textbf{Poisson Noise}, \textbf{Bernoulli Noise}, and \textbf{Salt and Pepper Noise} with noise density ranging from 150/255 to 240/255 in increments of 10/255. And \textbf{Gaussian Noise}: with noise levels (standard deviation $\sigma$) were set to 15/255, 25/255, 50/255, and 60/255.
+
+Detailed experimental results of SaltNet for each dataset and noise type are listed. Followed by a comparison with a locally trained Restormer version. This Restormer version was trained following the exactly the same methods and data detailed in \ref{sec:training_details}. The denoising performance was quantitatively evaluated using the \textbf{Peak Signal-to-Noise Ratio (PSNR)} and \textbf{Structural Similarity Index (SSIM)} metrics. PSNR focusing on pixel-level fidelity and SSIM emphasizing structural and perceptual aspects.
+
+SaltNet's denoising performance is very competitive with Restormer's when the trained using the same method.
+\subsection{Quantitative Results}
+\subsubsection{Gaussian Noise}
+
+\begin{table}[!hbt]
+    \centering
+    \begin{minipage}{0.48\textwidth} % Adjust width as needed
+        \centering
+        \begin{tabular}{ccccc}
+            \hline
+            & \multicolumn{4}{c}{Gaussian Noise Density} \\
+            & 15 & 25 & 50 & 60 \\
+            \hline
+            Average & 31.38 & 29.08 & 25.99 & 25.19 \\
+            \hline
+            BSD68 & 31.28 & 29.05 & 26.19 & 25.48 \\
+            Kodak24 & 32.27 & 30.21 & 27.46 & 26.74 \\
+            Set 12 & 32.43 & 30.23 & 27.12 & 26.33 \\
+            Urban100 & 31.10 & 28.69 & 25.36 & 24.48 \\        
+            \hline
+        \end{tabular}
+        \caption{SaltNet - Bernoulli Detailed PSNR Results}
+    \end{minipage}
+    \hfill
+    \vline
+    \begin{minipage}{0.45\textwidth}
+        \centering
+        \begin{tabular}{cccc}
+            \hline
+            \multicolumn{4}{c}{Gaussian Noise Density} \\
+            15 & 25 & 50 & 60 \\
+            \hline
+            0.9057 & 0.8566 & 0.7560 & 0.7242 \\
+            \hline
+            0.8893 & 0.8300 & 0.7192 & 0.6869 \\
+            0.8865 & 0.8327 & 0.7342 & 0.7070 \\
+            0.9001 & 0.8611 & 0.7830 & 0.7583 \\
+            0.9221 & 0.8798 & 0.7831 & 0.7497 \\
+            \hline
+        \end{tabular}
+        \caption{SaltNet - Bernoulli Detailed SSIM Results}
+    \end{minipage}
+    \end{table}
+
+\begin{table}[!hbt]
+    \centering
+    \begin{tabular}{ccccc}
+        \hline
+        Alpha & \multicolumn{2}{c}{AVG. PSNR} & \multicolumn{2}{c}{AVG. SSIM} \\
+            & SaltNet & Restormer & SaltNet & Restormer \\
+        \hline
+        15    & \underline{31.38}   & 31.05     & 0.9057  & \underline{0.9075}  \\
+        25    & \underline{29.08}   & 28.87     & \underline{0.8566}  & 0.8562  \\
+        50    & \underline{25.99}   & 25.76     & \underline{0.7560}  & 0.7500  \\
+        60    & \underline{25.19}   & 24.96     & \underline{0.7242}  & 0.7166  \\
+        \hline
+    \end{tabular}
+    \caption{Gaussian Noise SaltNet vs. Restormer Comparison}
+\end{table}
+
+% \include{sections/experiments/Gaussian.tex}
+\include{sections/experiments/Bernoulli.tex}
+\include{sections/experiments/Poisson.tex}
+\include{sections/experiments/SAP.tex}
+
+\subsection{Qualitative Results and Visual Inspection}
+
+Below are some samples of our experimentation. Full results are in the Resources Section\ref{sec:resources}
+
+\begin{figure}[htpb]
+    \centering
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/240_sap_saltnet.png}
+        \caption{SaltNet (Salt \& Pepper, 240/250)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/240_sap_restormer.png}
+        \caption{Restormer (Salt \& Pepper, 240/250)}
+    \end{subfigure}
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/60_gau_2_saltnet.png}
+        \caption{SaltNet (Gaussian, 60/250)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/60_gau_2_restormer.png}
+        \caption{Restormer (Gaussian, 60/250)}
+    \end{subfigure}
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/60_gau_saltnet.png}
+        \caption{SaltNet (Gaussian, 60/250)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/60_gau_restormer.png}
+        \caption{Restormer (Gaussian, 60/250)}
+    \end{subfigure}
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/240_bern_saltnet.png}
+        \caption{SaltNet (Bernoulli, 240/250)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/240_bern_restormer.png}
+        \caption{Restormer (Bernoulli, 240/250)}
+    \end{subfigure}
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/240_pois_saltnet.png}
+        \caption{SaltNet (Poisson, 240/250)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/240_pois_restormer.png}
+        \caption{Restormer (Poisson, 240/250)}
+    \end{subfigure}
+    % \begin{subfigure}{0.48\textwidth}
+    %     \centering
+    %     \includegraphics[width=\textwidth]{assets/60_gau_3_saltnet.png}
+    %     \caption{SaltNet (Gaussian, 60/250)}
+    % \end{subfigure}
+    % \hfill
+    % \begin{subfigure}{0.48\textwidth}
+    %     \centering
+    %     \includegraphics[width=\textwidth]{assets/60_gau_3_restormer.png}
+    %     \caption{Restormer (Gaussian, 60/250)}
+    % \end{subfigure}
+    % \begin{subfigure}{0.48\textwidth}
+    %     \centering
+    %     \includegraphics[width=\textwidth]{assets/240_sap_2_restormer.png}
+    %     \caption{SaltNet (Salt \& Pepper, 240/250)}
+    % \end{subfigure}
+    % \hfill
+    % \begin{subfigure}{0.48\textwidth}
+    %     \centering
+    %     \includegraphics[width=\textwidth]{assets/240_sap_2_saltnet.png}
+    %     \caption{Restormer (Salt \& Pepper, 240/250)}
+    % \end{subfigure}
+    % \caption{Qualitative Results}
+\end{figure}
+
+\pagebreak
+
+\subsection{Performance Comparisons}
+
+SaltNet is shown through the results below to be much more resource efficient than Restormer.
+
+\begin{table}[!hbt]
+    \centering
+    \caption{Performance Comparison}
+    \begin{tabular}{lcccccc}
+    \toprule
+    Size & Restormer Mem. & Our Model Mem. & Restormer Thr. & Our Model Thr. \\
+    (px) & (bytes) & (bytes) & (im/s) & (im/s) \\
+    \midrule
+    64 & 2.60E+08 & 2.23E+08 & 25.15 & 45.27 \\
+    128 & 3.22E+08 & 1.43E+08 & 24.12 & 43.95 \\
+    256 & 5.45E+08 & 3.22E+08 & 21.42 & 41.60 \\
+    512 & 1.77E+09 & 1.04E+09 & 6.36 & 31.63 \\
+    1024 & 6.74E+09 & 3.90E+09 & 1.22 & 23.61 \\
+    2048 & 1.53E+10 & OOM & OOM & 2.52 \\
+    4096 & OOM & OOM & OOM & OOM \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{figure}[!hbt]
+        \centering
+        \includegraphics[width=\textwidth]{assets/memory-requirements.png}
+        \caption{SaltNet (Poisson, 240/250)}
+\end{figure}
+\begin{figure}[!hbt]
+        \centering
+        \includegraphics[width=\textwidth]{assets/throughput.png}
+        \caption{Restormer (Poisson, 240/250)}
+\end{figure}

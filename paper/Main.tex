@@ -1,0 +1,64 @@
+\documentclass{article}
+\usepackage{flafter}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage[section]{placeins}
+\usepackage{subcaption}
+
+\begin{document}
+
+\title{SaltNet: Resource-Efficient Deep Learning Approach for Grayscale Image Denoising} % Example Title -  You should refine this
+
+\author{Mostafa Kamal \\ \href{mailto:mos.kamal@nu.edu.eg}{mos.kamal@nu.edu.eg} }
+
+\date{\today}
+
+\maketitle
+
+
+\begin{abstract}
+    \input{sections/Abstract.tex}
+
+\end{abstract}
+
+\section{Literature Review}
+\label{sec:literature_review}
+    \input{sections/Literature Review.tex}
+\section{SaltNet Architecture}
+\label{sec:saltnet_architecture}
+    \input{sections/Architecture.tex}
+
+\section{Training Details}
+\label{sec:training_details}
+    \input{sections/Training.tex}
+
+\section{Experimental Results}
+\label{sec:experimental_results}
+    \input{sections/Experimentation.tex}
+
+\section{Ablation Study}
+\label{sec:ablation_study}
+    \input{sections/Ablation.tex}
+
+\pagebreak
+
+\section{Resources}
+\label{sec:resources}
+
+\begin{itemize}
+\item Code: The complete SaltNet project code, including the implementation of Restormer, can be found at \url{https://github.com/mostafa-k-m/seasalt}.
+\item SaltNet vs. Restormer Results: The full set of experimental results for the SaltNet vs. Restormer comparison, including all images and numerical data, can be accessed at \url{https://nileuniversity-my.sharepoint.com/:u:/g/personal/mos_kamal_nu_edu_eg/ET7VEjGbgyBCiAy7t8YxEIoB9dHZPm5WET6ajmhZCnMP4Q?e=C31VDP}.
+\item Ablation Experiments Results: The complete results of the ablation experiments, with all images and numerical data, are available at \url{https://nileuniversity-my.sharepoint.com/:u:/g/personal/mos_kamal_nu_edu_eg/EWr7E1_KaRdAmpP2saWx8-MBXGOIvXEuGwPJ4rOI4Cn0ng?e=hwMfvx}.
+\item Model Weights: The model weights for SaltNet, Restormer, and each of the ablation models can be downloaded from \url{https://nileuniversity-my.sharepoint.com/:u:/g/personal/mos_kamal_nu_edu_eg/EW8doN45lHNMgRMObz0Ewu0Bn4ZHBWkP47JqUGLgxh1Eag?e=2I4fyicom}.
+\end{itemize}
+
+\section*{Acknowledgements}
+\label{sec:acknowledgements}
+I would like to express my sincere gratitude to my professor, Dr. Walid Al-Atabany, for his invaluable guidance, patience, and understanding throughout this research project. His support and encouragement were instrumental in the successful completion of this work.
+
+\label{sec:references}
+\input{sections/References.tex}
+\end{document}

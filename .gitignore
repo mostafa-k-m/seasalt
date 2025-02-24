@@ -1,7 +1,13 @@
 BSDS300-test
 
-cocou-val2017
+data
+*.aux
+*.out
+*.gz
+*.pdf
+.runs
 
+models
 __pycache__
 
 *.pdf
@@ -9,10 +15,12 @@ __pycache__
 *.pptx
 
 *.pkl
+*.xlsx
 
 Presentations
 
 *.png
+!paper/assets/*.png
 *.jpg
 *.jpeg
 *.tiff
