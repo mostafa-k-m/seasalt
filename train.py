@@ -38,19 +38,19 @@ val_dataloader = dli.get_test_dataloader(
 tb_dataloader = dli.get_tensor_board_dataset(
     noise_type, min_noise=min_noise, max_noise=max_noise, batch_size=1
 )
-torch.set_float32_matmul_precision('high')
+torch.set_float32_matmul_precision("high")
 
 denoiser_model = HybridModel(
     denoiser_weights_path=None,
-                enable_seconv=True,
-            enable_fft=False,
-            enable_anisotropic=True,
-            enable_unet_post_processing=True,
-            transformer_depth=10,
+    enable_seconv=True,
+    enable_fft=False,
+    enable_anisotropic=True,
+    enable_unet_post_processing=True,
+    transformer_depth=10,
 )
 denoiser_model.load_state_dict(
-            torch.load("/Users/mostafakm/Documents/school/project/models/home/mostafakm/project/models/pytorch_lightweight_model_249.h5", device),
-        )
+    torch.load("models/pytorch_lightweight_model_249.h5", device),
+)
 
 denoiser_model.to(device)
 
