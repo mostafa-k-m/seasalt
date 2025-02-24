@@ -4,6 +4,7 @@ from .denoise_net import (
     FFTBlock,
     OutputBlock,
     SeConvBlock,
+    TransformerBlock,
 )
 from .denoise_seconvnet import (
     GradientVarianceLoss,
@@ -57,6 +58,7 @@ __all__ = [
     "FFTBlock",
     "OutputBlock",
     "SeConvBlock",
+    "TransformerBlock",
     "HybridModel",
     "train_hybrid_model",
     "SaltNetOneStageHandler",
