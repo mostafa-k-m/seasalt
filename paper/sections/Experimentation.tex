@@ -10,9 +10,7 @@ The performance of SaltNet was evaluated on four public datasets \textbf{BSD68}\
 
 Images from the four utilized datasets were corrupted with one of four distinct types of noise: \textbf{Poisson Noise}, \textbf{Bernoulli Noise}, and \textbf{Salt and Pepper Noise} with noise density ranging from 150/255 to 240/255 in increments of 10/255. And \textbf{Gaussian Noise}: with noise levels (standard deviation $\sigma$) were set to 15/255, 25/255, 50/255, and 60/255.
 
-Detailed experimental results of SaltNet for each dataset and noise type are listed. Followed by a comparison with a locally trained Restormer version. This Restormer version was trained following the exactly the same methods and data detailed in \ref{sec:training_details}. The denoising performance was quantitatively evaluated using the \textbf{Peak Signal-to-Noise Ratio (PSNR)} and \textbf{Structural Similarity Index (SSIM)} metrics. PSNR focusing on pixel-level fidelity and SSIM emphasizing structural and perceptual aspects.
-
-SaltNet's denoising performance is very competitive with Restormer's when the trained using the same method.
+Detailed experimental results of SaltNet in comparison with Restormer are listed, both SaltNet and Restormer were trained using the methodology outlined in the training section \ref{sec:training_details}. Both models were trained on the same training data, same hardware and for the same number of epochs. The denoising performance was quantitatively evaluated using the \textbf{Peak Signal-to-Noise Ratio (PSNR)} and \textbf{Structural Similarity Index (SSIM)} metrics. PSNR focusing on pixel-level fidelity and SSIM emphasizing structural and perceptual aspects. We found SaltNet's denoising performance is competitive with Restormer's.
 \subsection{Quantitative Results}
 \subsubsection{Gaussian Noise}
 
@@ -81,7 +79,7 @@ SaltNet's denoising performance is very competitive with Restormer's when the tr
 
 Below are some samples of our experimentation. Full results are in the Resources Section\ref{sec:resources}
 
-\begin{figure}[htpb]
+\begin{figure}[H]
     \centering
     \begin{subfigure}{0.48\textwidth}
         \centering
@@ -167,7 +165,7 @@ Below are some samples of our experimentation. Full results are in the Resources
 
 \subsection{Performance Comparisons}
 
-SaltNet is shown through the results below to be much more resource efficient than Restormer.
+SaltNet is shown through the results below to be much more resource efficient than Restormer. These tests were performed on a machine with a single nVidia L4 GPU with 24GB of VRAM.
 
 \begin{table}[!hbt]
     \centering
@@ -188,12 +186,12 @@ SaltNet is shown through the results below to be much more resource efficient th
     \end{tabular}
 \end{table}
 
-\begin{figure}[!hbt]
+\begin{figure}[H]
         \centering
         \includegraphics[width=\textwidth]{assets/memory-requirements.png}
         \caption{SaltNet (Poisson, 240/250)}
 \end{figure}
-\begin{figure}[!hbt]
+\begin{figure}[H]
         \centering
         \includegraphics[width=\textwidth]{assets/throughput.png}
         \caption{Restormer (Poisson, 240/250)}
