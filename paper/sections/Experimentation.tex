@@ -167,15 +167,13 @@ Below are some samples of our experimentation. Full results are in the Resources
 
 SaltNet is shown through the results below to be much more resource efficient than Restormer. These tests were performed on a machine with a single nVidia L4 GPU with 24GB of VRAM.
 
-SaltNet demonstrates higher computational efficiency, evident through the lower memory usage on our testing hardware. While Restormer was able to restore images up to 1024x1024 pixels before going out of memory, SaltNet was able to restore 2048x2048 images on the same hardware. We have also calculated the throughput of each model in images/sec, the results show that SaltNet could be a better fit for high throughput or video applications.
-
 \begin{table}[!hbt]
     \centering
     \caption{Performance Comparison}
     \begin{tabular}{lcccccc}
     \toprule
     Size & Restormer Mem. & SaltNet Mem. & Restormer Thr. & SaltNet Thr. \\
-    (px) & (bytes) & (bytes) & (im/s) & (im/s) \\
+    (px)    & (MBs)     & (MBs)     & (im/s)& (im/s)\\
     \midrule
     64      & 247.97    & 212.48    & 25.15 & 45.27 \\
     128     & 307.01    & 136.07    & 24.12 & 43.95 \\
@@ -188,13 +186,14 @@ SaltNet demonstrates higher computational efficiency, evident through the lower 
     \end{tabular}
 \end{table}
 
-\begin{figure}[H]
-        \centering
-        \includegraphics[width=\textwidth]{assets/memory-requirements.png}
-        \caption{SaltNet (Poisson, 240/250)}
+
+\begin{figure}[htbp]
+    \centering
+    \subfloat[Model Memory Usage]{\includegraphics[width=0.45\textwidth]{assets/memory-requirements.png}}
+    \hfill
+    \subfloat[Model Throughput]{\includegraphics[width=0.45\textwidth]{assets/throughput.png}}
+    \caption{Computational efficiency comparisons using multiple image sizes.}
+    \label{fig:sidebyside}
 \end{figure}
-\begin{figure}[H]
-        \centering
-        \includegraphics[width=\textwidth]{assets/throughput.png}
-        \caption{Restormer (Poisson, 240/250)}
-\end{figure}
+
+SaltNet demonstrates higher computational efficiency, evident through the lower memory usage on our testing hardware. While Restormer was able to restore images up to 1024x1024 pixels before going out of memory, SaltNet was able to restore 2048x2048 images on the same hardware. We have also calculated the throughput of each model in images/sec, the results show that SaltNet could be a better fit for high throughput or video applications.
