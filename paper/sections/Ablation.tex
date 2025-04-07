@@ -44,6 +44,7 @@ It is possible to rank the SaltNet components in terms of highest impact on accu
         \bottomrule
     \end{tabular}
     \caption{Ablation Study Results - Gaussian Test}
+    \label{table:ablation-1}
 \end{table}
 
 \begin{table}[!hbt]
@@ -78,6 +79,7 @@ It is possible to rank the SaltNet components in terms of highest impact on accu
         \bottomrule
     \end{tabular}
     \caption{Ablation Study Results - PSNR}
+    \label{table:ablation-2}
 \end{table}
 
 \begin{table}[!hbt]
@@ -112,4 +114,7 @@ It is possible to rank the SaltNet components in terms of highest impact on accu
         \bottomrule
     \end{tabular}
     \caption{Ablation Study Results - SSIM}
+    \label{table:ablation-3}
 \end{table}
+
+It can be concluded from this ablation study (tables \ref{table:ablation-1}, \ref{table:ablation-2}, and \ref{table:ablation-3}) that all components of SaltNet generalized well to the tested noise types. The strongest impact to denosing performance is the transformer component, followed by Unet then Seconv and Anisotropic.
