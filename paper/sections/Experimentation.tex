@@ -77,6 +77,30 @@ Detailed experimental results of SaltNet in comparison with Restormer are listed
 
 \subsection{Qualitative Results and Visual Inspection}
 
+As suggested by the quanitative results, SaltNet's performance is competitive with Restormer's. In many of our experiments, we saw that SaltNet tends to better perserve minor details like intricate patterns and stripes, while Restormer tends to perserve the overall structure of the image better, with less distortion to straight edges. The following two exaples demosntrate this well. In Figure \ref{fig:sidebyside-example-1}, SaltNet perserves the tile pattern better than Restormer, While Restormer perserves the straight edges of the tiles better. Similar observatiosn can be made from \ref{fig:sidebyside-example-2}.
+
+\begin{figure}[htbp]
+    \centering
+    \subfloat[Original Image]{\includegraphics[width=0.3\textwidth]{assets/example-1/Original.png}}
+    \hfill
+    \subfloat[SaltNet]{\includegraphics[width=0.3\textwidth]{assets/example-1/SaltNet.png}}
+    \hfill
+    \subfloat[Restormer]{\includegraphics[width=0.3\textwidth]{assets/example-1/Restormer.png}}
+    \caption{Computational efficiency comparisons using multiple image sizes.}
+    \label{fig:sidebyside-example-1}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \subfloat[Original Image]{\includegraphics[width=0.3\textwidth]{assets/example-2/Original.png}}
+    \hfill
+    \subfloat[SaltNet]{\includegraphics[width=0.3\textwidth]{assets/example-2/SaltNet.png}}
+    \hfill
+    \subfloat[Restormer]{\includegraphics[width=0.3\textwidth]{assets/example-2/Restormer.png}}
+    \caption{Computational efficiency comparisons using multiple image sizes.}
+    \label{fig:sidebyside-example-2}
+\end{figure}
+
 Below are some samples of our experimentation. Full results are in the Resources Section\ref{sec:resources}
 
 \begin{figure}[H]
@@ -84,81 +108,83 @@ Below are some samples of our experimentation. Full results are in the Resources
     \begin{subfigure}{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{assets/240_sap_saltnet.png}
-        \caption{SaltNet (Salt \& Pepper, 240/250)}
+        \caption{\parbox{\textwidth}{SaltNet, Salt \& Pepper Noise 240/250 \\ PSNR: 23.1 dB, SSIM: 0.6903}}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{assets/240_sap_restormer.png}
-        \caption{Restormer (Salt \& Pepper, 240/250)}
+        \caption{\parbox{\textwidth}{Restormer, Salt \& Pepper Noise 240/250 \\ PSNR: 23.1 dB, SSIM: 0.6847}}
     \end{subfigure}
+\end{figure}
+\begin{figure}[H]
     \begin{subfigure}{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{assets/60_gau_2_saltnet.png}
-        \caption{SaltNet (Gaussian, 60/250)}
+        \caption{\parbox{\textwidth}{Restormer, Gaussian Noise 60/250 \\ PSNR: 25.9 dB, SSIM: 0.8299}}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{assets/60_gau_2_restormer.png}
-        \caption{Restormer (Gaussian, 60/250)}
+        \caption{\parbox{\textwidth}{Restormer, Gaussian Noise 60/250 \\ PSNR: 28.5 dB, SSIM: 0.7909}}
     \end{subfigure}
     \begin{subfigure}{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{assets/60_gau_saltnet.png}
-        \caption{SaltNet (Gaussian, 60/250)}
+        \caption{\parbox{\textwidth}{SaltNet, Gaussian Noise 60/250 \\ PSNR: 28.7 dB, SSIM: 0.7949}}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{assets/60_gau_restormer.png}
-        \caption{Restormer (Gaussian, 60/250)}
+        \caption{\parbox{\textwidth}{Restormer, Gaussian Noise 60/250 \\ PSNR: 25.6 dB, SSIM: 0.8117}}
     \end{subfigure}
     \begin{subfigure}{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{assets/240_bern_saltnet.png}
-        \caption{SaltNet (Bernoulli, 240/250)}
+        \caption{\parbox{\textwidth}{Restormer, Bernoulli 240/250 \\ PSNR: 27.9 dB, SSIM: 0.8206}}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{assets/240_bern_restormer.png}
-        \caption{Restormer (Bernoulli, 240/250)}
+        \caption{\parbox{\textwidth}{Restormer, Bernoulli 240/250 \\ PSNR: 27.2 dB, SSIM: 0.8282}}
     \end{subfigure}
     \begin{subfigure}{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{assets/240_pois_saltnet.png}
-        \caption{SaltNet (Poisson, 240/250)}
+        \caption{\parbox{\textwidth}{Restormer, Poisson 240/250 \\ PSNR: 28.4 dB, SSIM: 0.9343}}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.48\textwidth}
         \centering
         \includegraphics[width=\textwidth]{assets/240_pois_restormer.png}
-        \caption{Restormer (Poisson, 240/250)}
+        \caption{\parbox{\textwidth}{Restormer, Poisson 240/250 \\ PSNR: 28.6 dB, SSIM: 0.9361}}
     \end{subfigure}
-    % \begin{subfigure}{0.48\textwidth}
-    %     \centering
-    %     \includegraphics[width=\textwidth]{assets/60_gau_3_saltnet.png}
-    %     \caption{SaltNet (Gaussian, 60/250)}
-    % \end{subfigure}
-    % \hfill
-    % \begin{subfigure}{0.48\textwidth}
-    %     \centering
-    %     \includegraphics[width=\textwidth]{assets/60_gau_3_restormer.png}
-    %     \caption{Restormer (Gaussian, 60/250)}
-    % \end{subfigure}
-    % \begin{subfigure}{0.48\textwidth}
-    %     \centering
-    %     \includegraphics[width=\textwidth]{assets/240_sap_2_restormer.png}
-    %     \caption{SaltNet (Salt \& Pepper, 240/250)}
-    % \end{subfigure}
-    % \hfill
-    % \begin{subfigure}{0.48\textwidth}
-    %     \centering
-    %     \includegraphics[width=\textwidth]{assets/240_sap_2_saltnet.png}
-    %     \caption{Restormer (Salt \& Pepper, 240/250)}
-    % \end{subfigure}
-    % \caption{Qualitative Results}
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/60_gau_3_saltnet.png}
+        \caption{\parbox{\textwidth}{SaltNet, Gaussian Noise 60/250 \\ PSNR: 26.5 dB, SSIM: 0.6885}}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/60_gau_3_restormer.png}
+        \caption{\parbox{\textwidth}{Restormer, Gaussian Noise 60/250 \\ PSNR: 26.4 dB, SSIM: 0.6803}}
+    \end{subfigure}
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/240_sap_2_restormer.png}
+        \caption{\parbox{\textwidth}{SaltNet, Salt \& Pepper Noise 240/250 \\ PSNR: 24.9 dB, SSIM: 0.6980}}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{assets/240_sap_2_saltnet.png}
+        \caption{\parbox{\textwidth}{Restormer, Salt \& Pepper Noise 240/250 \\ PSNR: 24.7 dB, SSIM: 0.6979}}
+    \end{subfigure}
+    \caption{Qualitative Results}
 \end{figure}
 
 \pagebreak
