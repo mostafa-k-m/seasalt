@@ -2,9 +2,25 @@ The SaltNet architecture is designed with a multi-pathway approach to effectivel
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.65\textwidth]{assets/network_architecture.png}
-    \caption{SaltNet Architecture Diagram}
+    \includegraphics[width=1\textwidth]{assets/architecture/SaltNet.png}
+    \caption{SaltNet Full Architecture Diagram}
     \label{fig:saltnet_architecture}
+    \centering
+    \includegraphics[width=1\textwidth]{assets/architecture/SeconvBlock.png}
+    \caption{SeConv Block Diagram}
+    \label{fig:seconv_block}
+    \centering
+    \includegraphics[width=1\textwidth]{assets/architecture/AnisotropicDiffusionBlock.png}
+    \caption{AnisotropicDiffusion Block Diagram}
+    \label{fig:anisotropic_block}
+    \centering
+    \includegraphics[width=1\textwidth]{assets/architecture/TransformerBlock.png}
+    \caption{Transformer Block Diagram}
+    \label{fig:transformer_block}
+    \centering
+    \includegraphics[width=1\textwidth]{assets/architecture/Unet.png}
+    \caption{Unet Block Diagram}
+    \label{fig:unet_block}
 \end{figure}
 
 The input noisy image, represented as a tensor of dimensions \( (1, 1, InputHeight, InputWidth) \), is initially cloned and fed into two distinct branches: a stack of Selective Convolutional (SeConv) blocks and a stack of novel Anisotropic Diffusion blocks.
