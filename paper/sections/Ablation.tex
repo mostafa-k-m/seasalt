@@ -2,30 +2,10 @@ To dissect the contribution of individual components to SaltNet's overall perfor
 
 \subsection{Ablated Model Configurations}
 
-We evaluated the following variants of the SaltNet architecture:
+We evaluated several variants of the SaltNet architecture: \textbf{SaltNet (5 Transformer Blocks)}, which reduces the Transformer stack from 10 to 5; \textbf{SaltNet w/o Transformer Blocks}, removing the stack entirely; \textbf{SaltNet w/o Anisotropic Diffusion}, removing the AD branch; \textbf{SaltNet w/o SeConv}, removing the SeConv branch; and \textbf{SaltNet w/o AutoEncoder}, removing the final reconstruction module. All other architectural parameters and training procedures remained consistent with the full SaltNet model described in the previous sections, ensuring a controlled ablation study.
 
-\begin{itemize}
-    \item \textbf{SaltNet (5 Transformer Blocks)}:  This variant reduces the number of Transformer blocks in SaltNet from 10 to 5, while keeping all other components unchanged. This aims to assess the impact of Transformer block depth on performance.
-    \item \textbf{SaltNet w/o Transformer Blocks}:  This variant completely removes the Transformer block stack, evaluating the importance of global attention mechanisms in SaltNet.
-    \item \textbf{SaltNet w/o Anisotropic Diffusion}: In this configuration, the Anisotropic Diffusion branch is removed entirely. This ablation investigates the contribution of the novel anisotropic diffusion blocks in handling different noise types.
-    \item \textbf{SaltNet w/o SeConv}:  Here, the SeConv branch is removed, isolating the effect of the SeConv blocks, which are specifically designed for impulse noise reduction.
-    \item \textbf{SaltNet w/o AutoEncoder}: In this version, the final AutoEncoder post-processing module is removed, allowing us to assess its contribution to the final denoising quality.
-\end{itemize}
+The ablation study followed the same experimental methodology as described in Section \ref{sec:experimental_results}. Below are the average PSNR and SSIM scores of each ablation experiment (average across all datasets). Based on the performance degradation observed when components were removed (Tables \ref{table:ablation-1}, \ref{table:ablation-2}, \ref{table:ablation-3}), the SaltNet components rank in order of impact as follows: Transformer Blocks, U-net Module, SeConv Blocks, and finally Anisotropic Diffusion Blocks.
 
-All other architectural parameters and training procedures remained consistent with the full SaltNet model described in the previous sections, ensuring a controlled ablation study.
-
-The ablation study followed the same experimental methodology as described in Section \ref{sec:experimental_results}
-
-Below are the average PSNR and SSIM scores of each ablation experiment (average across all datasets)
-
-It is possible to rank the SaltNet components in terms of highest impact on accuracy as follows:
-
-\begin{itemize}
-\item Transformer Blocks
-\item U-net Module
-\item Seconv Blocks
-\item Anisotropic Diffusion Blocks
-\end{itemize}
 
 \begin{table}[!hbt]
     \centering

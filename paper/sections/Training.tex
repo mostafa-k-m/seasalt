@@ -1,12 +1,6 @@
 The SaltNet network was trained using a dataset of 432 randomly selected grayscale images\cite{Rafiee2021}. To augment the training data, a custom data loader was implemented. This loader extracted $64 \times 64$ pixel patches from the full images with a stride of 10 pixels, significantly increasing the effective dataset size.
 
-To further enhance the robustness and generalization of the model, online data augmentation was applied during training. Each image patch was subjected to a random transformation chosen from the following set:
-
-\begin{itemize}
-    \item Vertical Flip
-    \item Horizontal Flip
-    \item Random Rotation ($90^\circ, 180^\circ, 270^\circ$)
-\end{itemize}
+To further enhance the robustness and generalization of the model, online data augmentation was applied during training. Each image patch was subjected to a random transformation chosen from the following set: [Vertical Flip, Horizontal Flip, Random Rotation ($90^\circ, 180^\circ, 270^\circ$)]
 
 These transformations were applied each with equal probability. The generated patches were then split into training and testing sets, with a 80\%/20\% split.
 

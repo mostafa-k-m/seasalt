@@ -4,7 +4,7 @@ where the functions represent the major stages described below.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{assets/architecture/SaltNet.png} % Ensure path is correct
+    \includegraphics[width=1\textwidth]{assets/architecture/SaltNet.png}
     \caption{SaltNet Full Architecture Diagram.}
     \label{fig:saltnet_architecture}
 \end{figure}
@@ -13,7 +13,7 @@ where the functions represent the major stages described below.
 The input image $I$ is initially processed concurrently through two specialized branches designed to handle different noise characteristics.
 
 \subsubsection{SeConv Branch}
-This branch targets Salt-and-Pepper (SAP) noise using a stack of 7 Selective Convolutional (SeConv) blocks ($f_{SeConv}$), inspired by SeConvNet \cite{Rafiee2021}. The SeConv block, detailed in Figure \ref{fig:seconv_block}, operates on a local input $X_{seconv}$ (where initially $X_{seconv}=I$) where noisy pixels (0 or 255) are preprocessed to 0. It estimates noisy pixels using a normalized weighted average of non-noisy neighbors via a trainable kernel $\omega$. Binary masks identify noisy ($M_{X_{seconv}}$) and non-noisy ($\tilde{M}_{X_{seconv}} = 1 - M_{X_{seconv}}$) pixels relative to the input $X_{seconv}$. The potential restoration value $S$ is calculated as:
+This branch targets Salt-and-Pepper (SAP) and Bernoulli noise using a stack of 7 Selective Convolutional (SeConv) blocks ($f_{SeConv}$), inspired by SeConvNet \cite{Rafiee2021}. The SeConv block, detailed in Figure \ref{fig:seconv_block}, operates on a local input $X_{seconv}$ (where initially $X_{seconv}=I$) where noisy pixels (0 or 255) are preprocessed to 0. It estimates noisy pixels using a normalized weighted average of non-noisy neighbors via a trainable kernel $\omega$. Binary masks identify noisy ($M_{X_{seconv}}$) and non-noisy ($\tilde{M}_{X_{seconv}} = 1 - M_{X_{seconv}}$) pixels relative to the input $X_{seconv}$. The potential restoration value $S$ is calculated as:
 \begin{equation} \label{eq:seconv_s}
 [S]_{i,j,k} = \begin{cases} 
 \frac{[X_{seconv} * \omega]_{i,j,k}}{[\tilde{M}_{X_{seconv}} * \omega]_{i,j,k}} & \text{if } [\tilde{M}_{X_{seconv}} * \omega]_{i,j,k} \neq 0 \\ 
@@ -35,7 +35,7 @@ where $\odot$ is the Hadamard product. The full branch applies 7 such blocks ($f
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{assets/architecture/SeconvBlock.png} % Ensure path is correct
+    \includegraphics[width=1\textwidth]{assets/architecture/SeconvBlock.png}
     \caption{SeConv Block Diagram.}
     \label{fig:seconv_block}
 \end{figure}
@@ -52,7 +52,7 @@ The diffusion process incorporates learned components: gradients are processed b
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{assets/architecture/AnisotropicDiffusionBlock.png} % Ensure path is correct
+    \includegraphics[width=1\textwidth]{assets/architecture/AnisotropicDiffusionBlock.png}
     \caption{Anisotropic Diffusion Block Diagram.}
     \label{fig:anisotropic_block}
 \end{figure}
@@ -72,7 +72,7 @@ The MDTA module performs channel attention. Given the input to the block $X_{tf}
 \end{equation}
 Where $T$ is a learnable temperature parameter controlling the softmax sharpness.
 The output is projected and added to the input: $Y_{MDTA} = \text{Conv}_{1x1}^{out}(\text{Attention}(\dots)) + X_{tf}$.
-The GDFN module takes $Y_{MDTA}$, applies LN ($Y'_{GDFN} = \text{LN}(Y_{MDTA})$), expands features, applies DWConv, splits ($Y_1, Y_2$), applies gating, projects (\texttt{project\_out}), and adds skip connection:
+The GDFN module takes $Y_{MDTA}$, applies LN ($Y'_{GDFN} = \text{LN}(Y_{MDTA})$), expands features, applies DWConv, splits ($Y_1, Y_2$), applies gating, projects, and adds skip connection:
 \begin{equation} \label{eq:gdfn}
 Y_{TF\_block} = \text{Conv}_{1x1}^{out}(\text{GELU}(Y_1) \odot Y_2) + Y_{MDTA}
 \end{equation}
@@ -80,13 +80,13 @@ The full sequence produces the output $O_{TF} = f_{TF}(O_{Emb})$, where $O_{TF} 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{assets/architecture/TransformerBlock.png} % Ensure path is correct
+    \includegraphics[width=1\textwidth]{assets/architecture/TransformerBlock.png}
     \caption{Transformer Block Diagram.}
     \label{fig:transformer_block}
 \end{figure}
 
 \subsection{AutoEncoder Reconstruction}
-The final stage of the SaltNet architecture is an AutoEncoder module ($f_{AE}$), inspired by the U-Net structure with skip connections \cite{Wu2022} and illustrated in Figure \ref{fig:unet_block}. This module refines the features processed by the Transformer blocks and reconstructs the final $c$-channel denoised image $\hat{I}$. Our implementation adapts the standard U-Net for the 48-channel feature map input $X_{ae}$ (where $X_{ae} = O_{TF}$). As depicted, $X_{ae}$ serves as input directly to the second stage of the encoder pathway, effectively bypassing the initial, highest-resolution encoding block and resulting in an asymmetric U-Net structure (depth=5).
+The final stage of the SaltNet architecture is an asymmetric U-Net AutoEncoder ($f_{AE}$), inspired by the U-Net structure with skip connections \cite{Wu2022} and illustrated in Figure \ref{fig:unet_block}. This module refines the features processed by the Transformer blocks and reconstructs the final $c$-channel denoised image $\hat{I}$. Our implementation adapts the standard U-Net for the 48-channel feature map input $X_{ae}$ (where $X_{ae} = O_{TF}$). As depicted, $X_{ae}$ serves as input directly to the second stage of the encoder pathway, effectively bypassing the initial, highest-resolution encoding block and resulting in an asymmetric U-Net structure (depth=5).
 
 The encoder pathway progressively downsamples the input features $X_{ae}$ while increasing channel dimensionality. It employs a series of \texttt{EncoderBlock} modules. Each \texttt{EncoderBlock} applies convolutional layers followed by $2 \times 2$ max-pooling. The feature maps generated by the convolutional layers before pooling are preserved for later use in skip connections. The pathway culminates in a bottleneck block which applies further convolutions without downsampling.
 
@@ -96,7 +96,7 @@ Finally, an output layer maps the features from the last decoder stage back to t
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{assets/architecture/Unet.png} % Ensure path is correct
+    \includegraphics[width=1\textwidth]{assets/architecture/Unet.png}
     \caption{Asymmetric U-Net AutoEncoder Block Diagram.}
     \label{fig:unet_block}
 \end{figure}
