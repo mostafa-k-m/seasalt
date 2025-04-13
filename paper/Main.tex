@@ -7,10 +7,14 @@
 \usepackage{listings}
 \usepackage[section]{placeins}
 \usepackage{subcaption}
+\usepackage{cite}
+\usepackage{float}
+\usepackage{array}
+\usepackage[a4paper, left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm]{geometry}
 
 \begin{document}
 
-\title{SaltNet: Resource-Efficient Deep Learning Approach for Grayscale Image Denoising} % Example Title -  You should refine this
+\title{SaltNet: Resource-Efficient Deep Learning Approach for Image Denoising}
 
 \author{Mostafa Kamal \\ \href{mailto:mos.kamal@nu.edu.eg}{mos.kamal@nu.edu.eg} }
 
@@ -24,7 +28,7 @@
 
 \end{abstract}
 
-\section{Literature Review}
+\section{Introduction}
 \label{sec:literature_review}
     \input{sections/Literature Review.tex}
 \section{SaltNet Architecture}
@@ -60,5 +64,6 @@
 I would like to express my sincere gratitude to my professor, Dr. Walid Al-Atabany, for his invaluable guidance, patience, and understanding throughout this research project. His support and encouragement were instrumental in the successful completion of this work.
 
 \label{sec:references}
-\input{sections/References.tex}
+\bibliographystyle{plain} 
+\bibliography{references}
 \end{document}

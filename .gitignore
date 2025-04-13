@@ -1,38 +1,37 @@
 BSDS300-test
-
-data
-*.aux
-*.out
-*.gz
-*.pdf
-.runs
-
+cocou-val2017
 models
+Presentations
 __pycache__
 
 *.pdf
-
 *.pptx
-
 *.pkl
 *.xlsx
-
-Presentations
-
-*.png
-!paper/assets/*.png
+*.pt
+*.h5
+*.sarif
+*.pth
+*.aux
+*.synctex.gz
+*.bbl
+*.out
+*.blg
 *.jpg
 *.jpeg
 *.tiff
 settings.json
 
-
 .DS_Store
-
 */.DS_Store
+BSD68_OTHER
+TTI20_OTHER
+data
+eval
+images
 
 # Byte-compiled / optimized / DLL files
-__pycache__/
+.runs/
 *.py[cod]
 *$py.class
 

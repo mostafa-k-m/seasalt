@@ -1,22 +1,102 @@
-The SaltNet architecture is designed with a multi-pathway approach to effectively denoise images while maintaining computational efficiency. As depicted in Figure \ref{fig:saltnet_architecture}, the network ingests a grayscale noisy image and processes it through several parallel pathways before converging to produce the final denoised output. This structure allows SaltNet to leverage different denoising strategies, addressing various noise types effectively.
+SaltNet employs a multi-pathway architecture, illustrated in Figure \ref{fig:saltnet_architecture}, designed for computationally efficient denoising of images corrupted by various noise types. Given an input noisy image $I \in R^{c \times H \times W}$, SaltNet processes it through several stages involving parallel branches, feature embedding, transformer-based processing, and autoencoder-based reconstruction to produce a denoised output image $\hat{I} \in R^{c \times H \times W}$. The overall transformation can be expressed as:
+\[ \hat{I} = f_{AE}(f_{TF}(f_{Emb}(\text{Concat}(I, f_{SeConv}(I), f_{AD}(I))))) \]
+where the functions represent the major stages described below.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{assets/network_architecture.png}
-    \caption{SaltNet Architecture Diagram}
+    \includegraphics[width=1\textwidth]{assets/architecture/SaltNet.png}
+    \caption{SaltNet Full Architecture Diagram.}
     \label{fig:saltnet_architecture}
 \end{figure}
 
-The input noisy image, represented as a tensor of dimensions \( (1, 1, InputHeight, InputWidth) \), is initially cloned and fed into two distinct branches: a stack of Selective Convolutional (SeConv) blocks and a stack of novel Anisotropic Diffusion blocks.
+\subsection{Parallel Processing Branches}
+The input image $I$ is initially processed concurrently through two specialized branches designed to handle different noise characteristics.
 
-The first branch utilizes \textbf{SeConv blocks}, inspired by the SeConvNet architecture\cite{Rafiee2021}, to effectively address salt-and-pepper noise. We employ a stack of \texttt{7} SeConv blocks, each with increasing kernel sizes to capture multi-scale features. The output of the SeConv block stack is passed through a single \texttt{OutputBlock}: a Conv2d layer, batch normalization layer and ReLU activation, as opposed to a deep CNN network  in the original SeConvNet architecture.
+\subsubsection{SeConv Branch}
+This branch targets Salt-and-Pepper (SAP) and Bernoulli noise using a stack of 7 Selective Convolutional (SeConv) blocks ($f_{SeConv}$), inspired by SeConvNet \cite{Rafiee2021}. The SeConv block, detailed in Figure \ref{fig:seconv_block}, operates on a local input $X_{seconv}$ (where initially $X_{seconv}=I$) where noisy pixels (0 or 255) are preprocessed to 0. It estimates noisy pixels using a normalized weighted average of non-noisy neighbors via a trainable kernel $\omega$. Binary masks identify noisy ($M_{X_{seconv}}$) and non-noisy ($\tilde{M}_{X_{seconv}} = 1 - M_{X_{seconv}}$) pixels relative to the input $X_{seconv}$. The potential restoration value $S$ is calculated as:
+\begin{equation} \label{eq:seconv_s}
+[S]_{i,j,k} = \begin{cases} 
+\frac{[X_{seconv} * \omega]_{i,j,k}}{[\tilde{M}_{X_{seconv}} * \omega]_{i,j,k}} & \text{if } [\tilde{M}_{X_{seconv}} * \omega]_{i,j,k} \neq 0 \\ 
+0 & \text{otherwise} 
+\end{cases}
+\end{equation}
+where $*$ is convolution and the denominator normalizes using only non-noisy pixels. Restoration is applied selectively based on a reliability mask $R_{X_{seconv}}$:
+\begin{equation} \label{eq:seconv_r}
+[R_{X_{seconv}}]_{i,j,k} = \begin{cases} 
+1 & \text{if } [\tilde{M}_{X_{seconv}} * \omega_{one}]_{i,j,k} \ge \eta \\ 
+0 & \text{otherwise} 
+\end{cases}
+\end{equation}
+where $\omega_{one}$ is an $s \times s$ kernel of ones and $\eta$ is a threshold (e.g., $s-2$). The block output $O_{SeConv\_block}$ updates only reliable noisy pixels:
+\begin{equation} \label{eq:seconv_output}
+O_{SeConv\_block} = X_{seconv} + S \odot M_{X_{seconv}} \odot R_{X_{seconv}} 
+\end{equation}
+where $\odot$ is the Hadamard product. The full branch applies 7 such blocks ($f_{SeConv}$) with increasing kernel sizes $s \in \{7, 9, 11, 13, 15, 17, 19\}$, followed by an OutputBlock (Conv2d, BatchNorm, ReLU), producing the final branch output $O_{SeConv} = f_{SeConv}(I)$.
 
-Concurrently, the input image is also processed by a novel stack of \textbf{Anisotropic Diffusion blocks}. This branch uses a novel block implementation, drawing inspiration from anisotropic diffusion filtering but implemented within a deep learning framework. We stack \texttt{5} of these blocks, each applying a learned anisotropic diffusion process to smooth noise while preserving edges and image structures. This component is particularly effective in handling probalistic noise types, such as Gaussian and Poisson noise.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{assets/architecture/SeconvBlock.png}
+    \caption{SeConv Block Diagram.}
+    \label{fig:seconv_block}
+\end{figure}
 
-The outputs from both the SeConv and Anisotropic Diffusion branches, along with a cloned version of the original noisy input, are then concatenated along the channel dimension. This concatenated tensor, now with \texttt{3} input channels, is passed into a \textbf{Convolutional Embedding Layer} (\texttt{ConvBlock}). This layer, consisting of a convolutional layer, batch normalization, and ReLU activation, serves to create a feature embedding space with \texttt{48} channels, effectively fusing information from the different denoising pathways.
+\subsubsection{Anisotropic Diffusion Branch}
+This branch employs a stack of 5 novel Anisotropic Diffusion (AD) blocks ($f_{AD}$) to handle probabilistic noise (e.g., Gaussian, Poisson) while preserving edges, inspired by classical methods \cite{PeronaMalik1990}. The AD block structure is shown in Figure \ref{fig:anisotropic_block}. It processes a local input feature map $X_{ad}$ (where initially $X_{ad}=I$) by first approximating vertical ($\nabla_v X_{ad}$) and horizontal ($\nabla_h X_{ad}$) gradients. Spatially varying diffusion coefficients ($c_v, c_h$) are computed using an edge-stopping function $g(x)$ controlled by a learned parameter $\kappa$:
+\begin{equation} \label{eq:ad_g}
+g(x) = \frac{1}{1 + (x^2 / \kappa^2)} 
+\end{equation}
+\begin{equation} \label{eq:ad_c}
+c_v = g(\text{mean}_{ch}(|\nabla_v X_{ad}|)), \quad c_h = g(\text{mean}_{ch}(|\nabla_h X_{ad}|))
+\end{equation}
+The diffusion process incorporates learned components: gradients are processed by trainable convolutions ($Conv_{dv}, Conv_{dh}$), modulated by $c_v, c_h$ and a learned rate $\gamma$, forming a diffusion flux ($T_v, T_h$). This flux updates the input $X_{ad}$ via operations approximating divergence, resulting in $X_{ad, diffused}$. A final convolution $Conv_{out}$ produces the block output. The full branch applies 5 such blocks ($f_{AD}$), producing the final branch output $O_{AD} = f_{AD}(I)$.
 
-The resulting feature embeddings are then processed by a small number of \textbf{Transformer blocks}, specifically \texttt{10} blocks. Inspired by the Restormer architecture\cite{Zamir2022}, these transformer blocks leverage multi-head attention mechanisms to capture long-range dependencies within the image. This allows the network to model global image context. To maintain computational efficiency, we limit the number of transformer blocks, compared to deeper Restormer architecture.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{assets/architecture/AnisotropicDiffusionBlock.png}
+    \caption{Anisotropic Diffusion Block Diagram.}
+    \label{fig:anisotropic_block}
+\end{figure}
 
-Finally, the output of the transformer blocks is fed into an \textbf{AutoEncoder} module. This module inspired by U-Net with skip connections\cite{Wu2022} acts as a post-processing refinement stage. The AutoEncoder, with a depth of \texttt{5}, further refines the denoised features and projects them back to the single-channel grayscale image space. It takes in an input of 48 channel dimensions and produces the final denoised output tensor of dimensions \( (1, 1, InputHeight, InputWidth) \).
+\subsection{Embedding Layer}
+The outputs from the parallel branches ($O_{SeConv}, O_{AD}$) are concatenated with the original input image $I$ along the channel dimension:
+\[ O_{cat} = \text{Concat}(I, O_{SeConv}, O_{AD}) \]
+This fused tensor $O_{cat} \in R^{3c \times H \times W}$ serves as the input to the Convolutional Embedding Layer ($f_{Emb}$). This layer, comprising a Conv2D, BatchNorm, and ReLU activation, maps $O_{cat}$ to a higher-dimensional embedding space:
+\[ O_{Emb} = f_{Emb}(O_{cat}) \]
+where $O_{Emb} \in R^{48 \times H \times W}$.
 
-By combining these components, SaltNet achieves a robust and efficient denoising architecture. The parallel processing branches allow for specialized handling of different noise characteristics, while the Transformer blocks and AutoEncoder ensure high quality in the final denoised images. This multi-pathway approach, positions SaltNet as a competitive and efficient alternative to existing state-of-the-art denoising networks like Restormer.
+\subsection{Transformer Blocks}
+A sequence of 10 Transformer blocks ($f_{TF}$), adapted from Restormer \cite{Zamir2022} and detailed in Figure \ref{fig:transformer_block}, processes the embedded features $O_{Emb}$ to capture long-range dependencies and global context efficiently. Each block applies Multi-Head Attention (MDTA) and a Gated Feed-Forward Network (GDFN) sequentially, with Layer Normalization (LN) and skip connections.
+The MDTA module performs channel attention. Given the input to the block $X_{tf}$ (where $X_{tf} = O_{Emb}$ for the first block, or the output of the previous block otherwise), it computes $X'_{tf} = \text{LN}(X_{tf})$, generates Q, K, V using 1x1 convolutions, applies 3x3 depth-wise convolution to the combined QKV, splits, normalizes Q' and K', and computes attention:
+\begin{equation} \label{eq:mdta_attn}
+\text{Attention}(Q', K', V) = \text{Softmax}(Q' {K'}^T \cdot T) V
+\end{equation}
+Where $T$ is a learnable temperature parameter controlling the softmax sharpness.
+The output is projected and added to the input: $Y_{MDTA} = \text{Conv}_{1x1}^{out}(\text{Attention}(\dots)) + X_{tf}$.
+The GDFN module takes $Y_{MDTA}$, applies LN ($Y'_{GDFN} = \text{LN}(Y_{MDTA})$), expands features, applies DWConv, splits ($Y_1, Y_2$), applies gating, projects, and adds skip connection:
+\begin{equation} \label{eq:gdfn}
+Y_{TF\_block} = \text{Conv}_{1x1}^{out}(\text{GELU}(Y_1) \odot Y_2) + Y_{MDTA}
+\end{equation}
+The full sequence produces the output $O_{TF} = f_{TF}(O_{Emb})$, where $O_{TF} \in R^{48 \times H \times W}$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{assets/architecture/TransformerBlock.png}
+    \caption{Transformer Block Diagram.}
+    \label{fig:transformer_block}
+\end{figure}
+
+\subsection{AutoEncoder Reconstruction}
+The final stage of the SaltNet architecture is an asymmetric U-Net AutoEncoder ($f_{AE}$), inspired by the U-Net structure with skip connections \cite{Wu2022} and illustrated in Figure \ref{fig:unet_block}. This module refines the features processed by the Transformer blocks and reconstructs the final $c$-channel denoised image $\hat{I}$. Our implementation adapts the standard U-Net for the 48-channel feature map input $X_{ae}$ (where $X_{ae} = O_{TF}$). As depicted, $X_{ae}$ serves as input directly to the second stage of the encoder pathway, effectively bypassing the initial, highest-resolution encoding block and resulting in an asymmetric U-Net structure (depth=5).
+
+The encoder pathway progressively downsamples the input features $X_{ae}$ while increasing channel dimensionality. It employs a series of \texttt{EncoderBlock} modules. Each \texttt{EncoderBlock} applies convolutional layers followed by $2 \times 2$ max-pooling. The feature maps generated by the convolutional layers before pooling are preserved for later use in skip connections. The pathway culminates in a bottleneck block which applies further convolutions without downsampling.
+
+The decoder pathway symmetrically reconstructs the high-resolution feature representation. It consists of a series of \texttt{DecoderBlock} modules that progressively upsample the feature maps using learned $2 \times 2$ transposed convolutions. At each stage, the upsampled features are concatenated with the corresponding feature map preserved from the encoder pathway via skip connections. Padding is applied during concatenation to handle potential spatial dimension mismatches arising from pooling. Convolutional layers within each \texttt{DecoderBlock} to refine the features.
+
+Finally, an output layer maps the features from the last decoder stage back to the original number of image channels ($c$) using a $3 \times 3$ transposed convolution. A final ReLU activation function is applied to produce the reconstructed denoised image $\hat{I}$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{assets/architecture/Unet.png}
+    \caption{Asymmetric U-Net AutoEncoder Block Diagram.}
+    \label{fig:unet_block}
+\end{figure}

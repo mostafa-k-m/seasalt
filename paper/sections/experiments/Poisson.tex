@@ -1,9 +1,9 @@
 \subsubsection{Poisson Noise}
 
 
-\begin{table}[!hbt]
+\begin{table}[H]
     \centering
-    \begin{tabular}{ccccccccccc}
+    \begin{tabular}{>{\centering\arraybackslash}p{1.4cm}*{10}{>{\centering\arraybackslash}p{.8cm}}}
         \hline
         & \multicolumn{10}{c}{Poisson Noise Density} \\
         & 150 & 160 & 170 & 180 & 190 & 200 & 210 & 220 & 230 & 240 \\
@@ -19,9 +19,9 @@
     \caption{SaltNet - Poisson Detailed PSNR Results}
 \end{table}
 
-\begin{table}[!hbt]
+\begin{table}[H]
     \centering
-    \begin{tabular}{ccccccccccc}
+    \begin{tabular}{>{\centering\arraybackslash}p{1.4cm}*{10}{>{\centering\arraybackslash}p{.8cm}}}
         \hline
         & \multicolumn{10}{c}{Poisson Noise Density} \\
         & 150 & 160 & 170 & 180 & 190 & 200 & 210 & 220 & 230 & 240 \\
@@ -37,7 +37,7 @@
     \caption{SaltNet - Poisson Detailed SSIM Results}
 \end{table}
 
-\begin{table}[!hbt]
+\begin{table}[H]
     \centering
     \begin{tabular}{ccccc}
         \hline
@@ -58,3 +58,5 @@
     \end{tabular}
     \caption{Poisson Noise SaltNet vs. Restormer Comparison}
 \end{table}
+
+In the task of Poisson noise removal, SaltNet demonstrates a significant advantage over Restormer in terms of average PSNR, consistently achieving higher scores across all tested noise densities (150 to 240). Conversely, Restormer consistently obtains slightly better average SSIM results compared to SaltNet under these conditions. This indicates that while SaltNet excels in pixel-level accuracy (PSNR) for Poisson denoising, Restormer maintains a marginal edge in preserving structural similarity (SSIM).
