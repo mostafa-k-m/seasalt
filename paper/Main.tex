@@ -10,13 +10,29 @@
 \usepackage{cite}
 \usepackage{float}
 \usepackage{array}
+\usepackage{enumitem}
 \usepackage[a4paper, left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm]{geometry}
 
 \begin{document}
 
-\title{SaltNet: Resource-Efficient Deep Learning Approach for Image Denoising}
+\title{\textbf{MPDNet: Resource-Efficient Deep Learning Approach for Image Denoising}}
 
-\author{Mostafa Kamal \\ \href{mailto:mos.kamal@nu.edu.eg}{mos.kamal@nu.edu.eg} }
+\author{
+    Mostafa Kamal \\
+    \small{\textit{Center for Informatics Science (CIS)}} \\
+    \small{\textit{School of Information Technology}} \\
+    \small{\textit{and Computer Science,}} \\
+    \small{\textit{Nile University, Egypt}} \\
+    \small{\href{mailto:mos.kamal@nu.edu.eg}{mos.kamal@nu.edu.eg}}
+    \and
+    Walid Al-Atabany \\
+    \small{\textit{Center for Informatics Science (CIS)}} \\
+    \small{\textit{School of Information Technology}} \\
+    \small{\textit{and Computer Science,}} \\
+    \small{\textit{Nile University, Egypt}} \\
+    \small{\href{mailto:w.al-atabany@nu.edu.eg}{w.al-atabany@nu.edu.eg}}
+}
+
 
 \date{\today}
 
@@ -31,8 +47,8 @@
 \section{Introduction}
 \label{sec:literature_review}
     \input{sections/Literature Review.tex}
-\section{SaltNet Architecture}
-\label{sec:saltnet_architecture}
+\section{Methodology}
+\label{sec:methodology}
     \input{sections/Architecture.tex}
 
 \section{Training Details}
@@ -49,19 +65,19 @@
 
 \pagebreak
 
+\section{Conclusion}
+\label{sec:conclusion}
+This paper introduced MPDNet (Multi-Pathway Denoise Net), a novel multi-pathway deep learning architecture for efficient and effective denoising across diverse noise types. By integrating specialized SeConv blocks for impulse noise, Anisotropic Diffusion for edge perserving smoothing, Transformers for global context, and a U-Net AutoEncoder for reconstruction, MPDNet leverages multiple strengths. Experimental results confirmed MPDNet's denoising is competitive with state-of-the-art methods like Restormer, while being significantly more resource efficient.
+
 \section{Resources}
 \label{sec:resources}
 
-\begin{itemize}
-\item Code: The complete SaltNet project code, including the implementation of Restormer, can be found at \url{https://github.com/mostafa-k-m/seasalt}.
-\item SaltNet vs. Restormer Results: The full set of experimental results for the SaltNet vs. Restormer comparison, including all images and numerical data, can be accessed at \url{https://nileuniversity-my.sharepoint.com/:u:/g/personal/mos_kamal_nu_edu_eg/ET7VEjGbgyBCiAy7t8YxEIoB9dHZPm5WET6ajmhZCnMP4Q?e=C31VDP}.
-\item Ablation Experiments Results: The complete results of the ablation experiments, with all images and numerical data, are available at \url{https://nileuniversity-my.sharepoint.com/:u:/g/personal/mos_kamal_nu_edu_eg/EWr7E1_KaRdAmpP2saWx8-MBXGOIvXEuGwPJ4rOI4Cn0ng?e=hwMfvx}.
-\item Model Weights: The model weights for SaltNet, Restormer, and each of the ablation models can be downloaded from \url{https://nileuniversity-my.sharepoint.com/:u:/g/personal/mos_kamal_nu_edu_eg/EW8doN45lHNMgRMObz0Ewu0Bn4ZHBWkP47JqUGLgxh1Eag?e=2I4fyicom}.
+\begin{itemize}[leftmargin=*]
+\item Source Code: The complete MPDNet project code, including the implementation of Restormer, can be found at \href{https://github.com/mostafa-k-m/seasalt}{Github}.
+\item MPDNet vs. Restormer Results: The full set of experimental results for the MPDNet vs. Restormer comparison, including all images and numerical data, can be accessed at \href{https://nileuniversity-my.sharepoint.com/:u:/g/personal/mos_kamal_nu_edu_eg/ET7VEjGbgyBCiAy7t8YxEIoB9dHZPm5WET6ajmhZCnMP4Q?e=C31VDP}{this sharepoint folder}.
+\item Ablation Experiments Results: The complete results of the ablation experiments, with all images and numerical data, are available at \href{https://nileuniversity-my.sharepoint.com/:u:/g/personal/mos_kamal_nu_edu_eg/EWr7E1_KaRdAmpP2saWx8-MBXGOIvXEuGwPJ4rOI4Cn0ng?e=hwMfvx}{this sharepoint folder}.
+\item Model Weights: The model weights for MPDNet, Restormer, and each of the ablation models can be downloaded from \href{https://nileuniversity-my.sharepoint.com/:u:/g/personal/mos_kamal_nu_edu_eg/EW8doN45lHNMgRMObz0Ewu0Bn4ZHBWkP47JqUGLgxh1Eag?e=2I4fyicom}{this sharepoint folder}.
 \end{itemize}
-
-\section*{Acknowledgements}
-\label{sec:acknowledgements}
-I would like to express my sincere gratitude to my professor, Dr. Walid Al-Atabany, for his invaluable guidance, patience, and understanding throughout this research project. His support and encouragement were instrumental in the successful completion of this work.
 
 \label{sec:references}
 \bibliographystyle{plain} 
