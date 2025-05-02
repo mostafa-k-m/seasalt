@@ -1,43 +1,33 @@
 \documentclass{article}
-\usepackage{flafter}
 \usepackage{amsmath}
+\usepackage{array}
+\usepackage{authblk}
 \usepackage{booktabs}
+\usepackage{cite}
+\usepackage{enumitem}
+\usepackage{flafter}
+\usepackage{float}
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{listings}
-\usepackage[section]{placeins}
 \usepackage{subcaption}
-\usepackage{cite}
-\usepackage{float}
-\usepackage{array}
-\usepackage{enumitem}
+\usepackage[section]{placeins}
 \usepackage[a4paper, left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm]{geometry}
 
-\begin{document}
+
 
 \title{\textbf{MPDNet: Resource-Efficient Deep Learning Approach for Image Denoising}}
 
-\author{
-    Mostafa Kamal \\
-    \small{\textit{Center for Informatics Science (CIS)}} \\
-    \small{\textit{School of Information Technology}} \\
-    \small{\textit{and Computer Science,}} \\
-    \small{\textit{Nile University, Egypt}} \\
-    \small{\href{mailto:mos.kamal@nu.edu.eg}{mos.kamal@nu.edu.eg}}
-    \and
-    Walid Al-Atabany \\
-    \small{\textit{Center for Informatics Science (CIS)}} \\
-    \small{\textit{School of Information Technology}} \\
-    \small{\textit{and Computer Science,}} \\
-    \small{\textit{Nile University, Egypt}} \\
-    \small{\href{mailto:w.al-atabany@nu.edu.eg}{w.al-atabany@nu.edu.eg}}
-}
+\author[1]{Mostafa Kamal \thanks{\href{mailto:mos.kamal@nu.edu.eg}{mos.kamal@nu.edu.eg}}}
+\author[2]{Walid Al-Atabany \thanks{\href{mailto:w.al-atabany@nu.edu.eg}{w.al-atabany@nu.edu.eg}}}
+\affil[1, 2]{Center for Informatics Science (CIS), School of Information Technology and Computer Science, Nile University, Egypt}
+
+\date{}
 
 
-\date{\today}
-
+\begin{document}
 \maketitle
-
+\vspace{-2\baselineskip}
 
 \begin{abstract}
     \input{sections/Abstract.tex}
