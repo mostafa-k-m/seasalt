@@ -16,7 +16,7 @@
         Urban100 & 30.27 & 30.03 & 29.80 & 29.69 & 29.43 & 29.12 & 28.97 & 28.79 & 28.57 & 28.31 \\
         \hline
     \end{tabular}
-    \caption{MPDNet - Poisson Detailed PSNR Results}
+    \caption{MPDenoiseNet - Poisson Detailed PSNR Results}
 \end{table}
 
 \begin{table}[H]
@@ -34,7 +34,7 @@
         Urban100 & 0.9462 & 0.9438 & 0.9415 & 0.9391 & 0.9350 & 0.9299 & 0.9283 & 0.9239 & 0.9209 & 0.9152 \\
         \hline
     \end{tabular}
-    \caption{MPDNet - Poisson Detailed SSIM Results}
+    \caption{MPDenoiseNet - Poisson Detailed SSIM Results}
 \end{table}
 
 \begin{table}[H]
@@ -42,7 +42,7 @@
     \begin{tabular}{ccccc}
         \hline
         Poisson & \multicolumn{2}{c}{AVG. PSNR} & \multicolumn{2}{c}{AVG. SSIM} \\
-        Noise Density & MPDNet & Restormer & MPDNet & Restormer \\
+        Noise Density & MPDenoiseNet & Restormer & MPDenoiseNet & Restormer \\
         \hline
         150 & \underline{31.48} & 30.15 & 0.9491 & \underline{0.9512} \\
         160 & \underline{31.19} & 29.96 & 0.9460 & \underline{0.9482} \\
@@ -56,7 +56,7 @@
         240 & \underline{29.54} & 28.86 & 0.9170 & \underline{0.9277} \\
         \hline
     \end{tabular}
-    \caption{Poisson Noise MPDNet vs. Restormer Comparison}
+    \caption{Poisson Noise MPDenoiseNet vs. Restormer Comparison}
 \end{table}
 
-In the task of Poisson noise removal, MPDNet demonstrates a significant advantage over Restormer in terms of average PSNR, consistently achieving higher scores across all tested noise densities (150 to 240). Conversely, Restormer consistently obtains slightly better average SSIM results compared to MPDNetunder these conditions. This indicates that while SMPDNetexcels in pixel-level accuracy (PSNR) for Poisson denoising, Restormer maintains a marginal edge in preserving structural similarity (SSIM).
+In the task of Poisson noise removal, MPDenoiseNet demonstrates a significant advantage over Restormer in terms of average PSNR, consistently achieving higher scores across all tested noise densities (150 to 240). Conversely, Restormer consistently obtains slightly better average SSIM results compared to MPDenoiseNetunder these conditions. This indicates that while SMPDenoiseNetexcels in pixel-level accuracy (PSNR) for Poisson denoising, Restormer maintains a marginal edge in preserving structural similarity (SSIM).
