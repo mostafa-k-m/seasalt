@@ -57,7 +57,7 @@
 
 \section{Conclusion}
 \label{sec:conclusion}
-This paper introduced MPDenoiseNet (Multi-Path Denoise Net), a novel multi-path deep learning architecture for efficient and effective denoising across diverse noise types. By integrating specialized SeConv blocks for impulse noise, Anisotropic Diffusion for edge perserving smoothing, Transformers for global context, and a U-Net AutoEncoder for reconstruction, MPDenoiseNet leverages multiple strengths. Experimental results confirmed MPDenoiseNet's denoising is competitive with state-of-the-art methods like Restormer, while being significantly more resource efficient.
+In this paper, we proposed MPDenoiseNet, a multi-pathway deep learning model for image denoising that effectively handles diverse noise types while remaining computationally efficient. By combining SeConv blocks, Anisotropic Diffusion blocks, Transformer blocks, and an asymmetric U-Net decoder, MPDenoiseNet achieves strong denoising performance. Experimental results show that MPDenoiseNet outperforms or matches the state-of-the-art Restormer in PSNR and SSIM across Gaussian, Poisson, Bernoulli, and Salt \& Pepper noise. Additionally, MPDenoiseNet demonstrates significantly lower memory usage and higher throughput, enabling it to process larger images. Ablation studies confirm the importance of each architectural component, especially Transformers and the U-Net. Overall, MPDenoiseNet offers a practical, high-performance solution for real-time anad resource-constrained denoising applications.
 
 \section{Resources}
 \label{sec:resources}
