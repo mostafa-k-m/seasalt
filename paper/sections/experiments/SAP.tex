@@ -17,7 +17,7 @@
         Urban100 & 28.89 & 28.24 & 27.55 & 26.84 & 26.06 & 25.19 & 24.19 & 23.12 & 21.76 & 20.01 \\
         \hline
     \end{tabular}
-    \caption{MPDNet - Detailed PSNR Salt \& Pepper Results}
+    \caption{MPDenoiseNet - Detailed PSNR Salt \& Pepper Results}
 \end{table}
 
 \begin{table}[H]
@@ -35,7 +35,7 @@
         Urban100 & 0.9373 & 0.9287 & 0.9184 & 0.9059 & 0.8902 & 0.8700 & 0.8428 & 0.8047 & 0.7473 & 0.6502 \\
         \hline
     \end{tabular}
-    \caption{MPDNet - Detailed SSIM Salt \& Pepper Results}
+    \caption{MPDenoiseNet - Detailed SSIM Salt \& Pepper Results}
 \end{table}
 
 \begin{table}[H]
@@ -43,7 +43,7 @@
     \begin{tabular}{ccccc}
         \hline
         Salt \& Pepper & \multicolumn{2}{c}{AVG. PSNR} & \multicolumn{2}{c}{AVG. SSIM} \\
-        Noise Density & MPDNet & Restormer & MPDNet & Restormer \\
+        Noise Density & MPDenoiseNet & Restormer & MPDenoiseNet & Restormer \\
         \hline
         150 & \underline{29.87} & 29.27 & \underline{0.9293} & 0.9278 \\
         160 & \underline{29.27} & 28.71 & \underline{0.9197} & 0.9182 \\
@@ -57,7 +57,7 @@
         240 & \underline{21.90} & \underline{21.90} & 0.6664 & \underline{0.6704} \\
         \hline
     \end{tabular}
-    \caption{Salt \& Pepper Noise MPDNet vs. Restormer Comparison}
+    \caption{Salt \& Pepper Noise MPDenoiseNet vs. Restormer Comparison}
 \end{table}
 
-For Salt \& Pepper noise removal, MPDNet generally outperforms Restormer across the tested noise densities (150 to 240). MPDNet achieves higher average PSNR scores for all densities except the highest (240), where performance is equal. In terms of average SSIM, MPDNet leads for densities 150 through 220, while Restormer shows a marginal advantage only at the two highest densities (230 and 240).
+For Salt \& Pepper noise removal, MPDenoiseNet generally outperforms Restormer across the tested noise densities (150 to 240). MPDenoiseNet achieves higher average PSNR scores for all densities except the highest (240), where performance is equal. In terms of average SSIM, MPDenoiseNet leads for densities 150 through 220, while Restormer shows a marginal advantage only at the two highest densities (230 and 240).

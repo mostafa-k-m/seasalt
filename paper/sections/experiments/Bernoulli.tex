@@ -16,7 +16,7 @@
         Urban100 & 29.21 & 28.57 & 27.84 & 27.08 & 26.30 & 25.40 & 24.44 & 23.33 & 21.97 & 20.23 \\
         \hline
     \end{tabular}
-    \caption{MPDNet - Bernoulli Detailed PSNR Results}
+    \caption{MPDenoiseNet - Bernoulli Detailed PSNR Results}
 \end{table}
 
 \begin{table}[H]
@@ -34,7 +34,7 @@
         Urban100 & 0.9382 & 0.9300 & 0.9198 & 0.9075 & 0.8921 & 0.8717 & 0.8457 & 0.8082 & 0.7514 & 0.6567 \\
         \hline
     \end{tabular}
-    \caption{MPDNet - Bernoulli Detailed SSIM Results}
+    \caption{MPDenoiseNet - Bernoulli Detailed SSIM Results}
 \end{table}
 
 
@@ -43,7 +43,7 @@
     \begin{tabular}{ccccc}
         \hline
         Bernoulli & \multicolumn{2}{c}{AVG. PSNR} & \multicolumn{2}{c}{AVG. SSIM} \\
-        Noise Density & MPDNet & Restormer & MPDNet & Restormer \\
+        Noise Density & MPDenoiseNet & Restormer & MPDenoiseNet & Restormer \\
         \hline
         150 & \underline{30.10} & 29.84 & 0.9304 & \underline{0.9307} \\
         160 & \underline{29.48} & 29.25 & 0.9208 & \underline{0.9215} \\
@@ -57,7 +57,7 @@
         240 & 22.06 & \underline{22.19} & 0.6709 & \underline{0.6795} \\
         \hline
     \end{tabular}
-    \caption{Bernoulli Noise MPDNet vs. Restormer Comparison}
+    \caption{Bernoulli Noise MPDenoiseNet vs. Restormer Comparison}
 \end{table}
 
-When evaluated on Bernoulli noise removal across a wide range of densities (150 to 240), MPDNet exhibits performance closely comparable to Restormer. MPDNet achieves slightly higher average PSNR scores at lower to moderate noise densities (150-220), whereas Restormer shows a marginal PSNR advantage at the highest densities (230-240). In terms of average SSIM, Restormer consistently maintains a small lead over MPDNet across all tested densities. These results suggest both models are effective, with performance varying slightly depending on the noise density and evaluation metric.
+When evaluated on Bernoulli noise removal across a wide range of densities (150 to 240), MPDenoiseNet exhibits performance closely comparable to Restormer. MPDenoiseNet achieves slightly higher average PSNR scores at lower to moderate noise densities (150-220), whereas Restormer shows a marginal PSNR advantage at the highest densities (230-240). In terms of average SSIM, Restormer consistently maintains a small lead over MPDenoiseNet across all tested densities. These results suggest both models are effective, with performance varying slightly depending on the noise density and evaluation metric.
