@@ -18,9 +18,11 @@
 
 \title{\textbf{MPDenoiseNet: Resource-Efficient Deep Learning Approach for Image Denoising}}
 
-\author[1]{Mostafa Kamal \thanks{\href{mailto:mos.kamal@nu.edu.eg}{mos.kamal@nu.edu.eg}}}
-\author[2]{Walid Al-Atabany \thanks{\href{mailto:w.al-atabany@nu.edu.eg}{w.al-atabany@nu.edu.eg}}}
+\author[1]{Mostafa Kamal}
+\author[2]{Walid Al-Atabany}
 \affil[1, 2]{Center for Informatics Science (CIS), School of Information Technology and Computer Science, Nile University, Egypt}
+\affil[2]{Biomedical Engineering Department, Helwan University, Helwan, Egypt}
+\affil[1]{\href{mailto:mos.kamal@nu.edu.eg}{mos.kamal@nu.edu.eg}}
 
 \date{}
 
@@ -57,19 +59,15 @@
 
 \section{Conclusion}
 \label{sec:conclusion}
-In this paper, we proposed MPDenoiseNet, a multi-pathway deep learning model for image denoising that effectively handles diverse noise types while remaining computationally efficient. By combining SeConv blocks, Anisotropic Diffusion blocks, Transformer blocks, and an asymmetric U-Net decoder, MPDenoiseNet achieves strong denoising performance. Experimental results show that MPDenoiseNet outperforms or matches the state-of-the-art Restormer in PSNR and SSIM across Gaussian, Poisson, Bernoulli, and Salt \& Pepper noise. Additionally, MPDenoiseNet demonstrates significantly lower memory usage and higher throughput, enabling it to process larger images. Ablation studies confirm the importance of each architectural component, especially Transformers and the U-Net. Overall, MPDenoiseNet offers a practical, high-performance solution for real-time anad resource-constrained denoising applications.
+    
+    \input{sections/Conclusion.tex}
 
 \section{Resources}
 \label{sec:resources}
 
-\begin{itemize}[leftmargin=*]
-\item Source Code: The complete MPDenoiseNet project code, including the implementation of Restormer, can be found at \href{https://github.com/mostafa-k-m/seasalt}{Github}.
-\item MPDenoiseNet vs. Restormer Results: The full set of experimental results for the MPDenoiseNet vs. Restormer comparison, including all images and numerical data, can be accessed at \href{https://nileuniversity-my.sharepoint.com/:u:/g/personal/mos_kamal_nu_edu_eg/ET7VEjGbgyBCiAy7t8YxEIoB9dHZPm5WET6ajmhZCnMP4Q?e=C31VDP}{this sharepoint folder}.
-\item Ablation Experiments Results: The complete results of the ablation experiments, with all images and numerical data, are available at \href{https://nileuniversity-my.sharepoint.com/:u:/g/personal/mos_kamal_nu_edu_eg/EWr7E1_KaRdAmpP2saWx8-MBXGOIvXEuGwPJ4rOI4Cn0ng?e=hwMfvx}{this sharepoint folder}.
-\item Model Weights: The model weights for MPDenoiseNet, Restormer, and each of the ablation models can be downloaded from \href{https://nileuniversity-my.sharepoint.com/:u:/g/personal/mos_kamal_nu_edu_eg/EW8doN45lHNMgRMObz0Ewu0Bn4ZHBWkP47JqUGLgxh1Eag?e=2I4fyicom}{this sharepoint folder}.
-\end{itemize}
+    \input{sections/Resources.tex}
 
 \label{sec:references}
-\bibliographystyle{plain} 
+\bibliographystyle{ieeetr} 
 \bibliography{references}
 \end{document}
