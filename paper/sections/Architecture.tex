@@ -65,7 +65,7 @@ This fused tensor $O_{cat} \in R^{3c \times H \times W}$ serves as the input to 
 where $O_{Emb} \in R^{48 \times H \times W}$.
 
 \subsection{Transformer Blocks}
-A sequence of 10 Transformer blocks ($f_{TF}$), adapted from Restormer \cite{Zamir2022} and detailed in Figure \ref{fig:transformer_block}, processes the embedded features $O_{Emb}$ to capture long-range dependencies and global context efficiently. Each block applies Multi-Head Attention (MDTA) and a Gated Feed-Forward Network (GDFN) sequentially, with Layer Normalization (LN) and skip connections.
+A sequence of 10 Transformer blocks ($f_{TF}$), adapted from Restormer \cite{Zamir2022} and detailed in Figure \ref{fig:transformer_block}, processes the embedded features $O_{Emb}$ to capture long-range pixel interactions efficiently. Each block applies Multi-Head Attention (MDTA) and a Gated Feed-Forward Network (GDFN) sequentially, with Layer Normalization (LN) and skip connections.
 The MDTA module performs channel attention. Given the input to the block $X_{tf}$ (where $X_{tf} = O_{Emb}$ for the first block, or the output of the previous block otherwise), it computes $X'_{tf} = \text{LN}(X_{tf})$, generates Q, K, V using 1x1 convolutions, applies 3x3 depth-wise convolution to the combined QKV, splits, normalizes Q' and K', and computes attention:
 \begin{equation} \label{eq:mdta_attn}
 \text{Attention}(Q', K', V) = \text{Softmax}(Q' {K'}^T \cdot T) V
