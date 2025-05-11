@@ -22,22 +22,22 @@ As suggested by the quantitative results, MPDenoiseNet's performance is competit
 
 \begin{figure}[htbp]
     \centering
-    \subfloat[Original Image]{\includegraphics[width=0.3\textwidth]{assets/example-1/Original.png}}
+    \subfloat[Original Image]{\includegraphics[width=0.3\textwidth]{assets/figures/figure-6-a.png}}
     \hfill
-    \subfloat[MPDenoiseNet]{\includegraphics[width=0.3\textwidth]{assets/example-1/MPDenoiseNet.png}}
+    \subfloat[MPDenoiseNet]{\includegraphics[width=0.3\textwidth]{assets/figures/figure-6-b.png}}
     \hfill
-    \subfloat[Restormer]{\includegraphics[width=0.3\textwidth]{assets/example-1/Restormer.png}}
+    \subfloat[Restormer]{\includegraphics[width=0.3\textwidth]{assets/figures/figure-6-c.png}}
     \caption{Qualitative result example - IMG 095, Urban100 dataset - gaussian noise 60/250}
     \label{fig:sidebyside-example-1}
 \end{figure}
 
 \begin{figure}[htbp]
     \centering
-    \subfloat[Original Image]{\includegraphics[width=0.3\textwidth]{assets/example-2/Original.png}}
+    \subfloat[Original Image]{\includegraphics[width=0.3\textwidth]{assets/figures/figure-7-a.png}}
     \hfill
-    \subfloat[MPDenoiseNet]{\includegraphics[width=0.3\textwidth]{assets/example-2/MPDenoiseNet.png}}
+    \subfloat[MPDenoiseNet]{\includegraphics[width=0.3\textwidth]{assets/figures/figure-7-b.png}}
     \hfill
-    \subfloat[Restormer]{\includegraphics[width=0.3\textwidth]{assets/example-2/Restormer.png}}
+    \subfloat[Restormer]{\includegraphics[width=0.3\textwidth]{assets/figures/figure-7-c.png}}
     \caption{Qualitative result example - Barbara, Set12 dataset - gaussian noise 60/250}
     \label{fig:sidebyside-example-2}
 \end{figure}
@@ -48,13 +48,13 @@ Below are some samples of our experimentation. Full results are in the Resources
     \centering
     \begin{subfigure}{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/240_sap_MPDenoiseNet.png}
+        \includegraphics[width=\textwidth]{assets/figures/figure-8-a.png}
         \caption{\parbox{\textwidth}{MPDenoiseNet, PSNR: 23.1 dB, SSIM: 0.6903}}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/240_sap_restormer.png}
+        \includegraphics[width=\textwidth]{assets/figures/figure-8-b.png}
         \caption{\parbox{\textwidth}{Restormer, PSNR: 23.1 dB, SSIM: 0.6847}}
     \end{subfigure}
     \caption{Qualitative Results: Barbara from Set12 Dataset, Salt \& Pepper Noise 240/250}
@@ -62,13 +62,13 @@ Below are some samples of our experimentation. Full results are in the Resources
 \begin{figure}[H]
     \begin{subfigure}{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/60_gau_4_MPDenoiseNet.png}
+        \includegraphics[width=\textwidth]{assets/figures/figure-9-a.png}
         \caption{\parbox{\textwidth}{MPDenoiseNet PSNR: 25.4 dB, SSIM: 0.7711}}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/60_gau_4_restormer.png}
+        \includegraphics[width=\textwidth]{assets/figures/figure-9-b.png}
         \caption{\parbox{\textwidth}{Restormer, PSNR: 25.2 dB, SSIM: 0.7662}}
     \end{subfigure}
     \caption{Qualitative Results: Parrot from Set12 Dataset, Gaussian Noise 60/250}
@@ -76,13 +76,13 @@ Below are some samples of our experimentation. Full results are in the Resources
 \begin{figure}[H]
     \begin{subfigure}{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/60_gau_MPDenoiseNet.png}
+        \includegraphics[width=\textwidth]{assets/figures/figure-10-a.png}
         \caption{\parbox{\textwidth}{MPDenoiseNet, PSNR: 28.7 dB, SSIM: 0.7949}}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/60_gau_restormer.png}
+        \includegraphics[width=\textwidth]{assets/figures/figure-10-b.png}
         \caption{\parbox{\textwidth}{Restormer, PSNR: 25.6 dB, SSIM: 0.8117}}
     \end{subfigure}
     \caption{Qualitative Results: Lenna from Set12 Dataset, Gaussian Noise 60/250}
@@ -90,13 +90,13 @@ Below are some samples of our experimentation. Full results are in the Resources
 \begin{figure}[H]
     \begin{subfigure}{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/240_bern_MPDenoiseNet.png}
+        \includegraphics[width=\textwidth]{assets/figures/figure-11-a.png}
         \caption{\parbox{\textwidth}{Restormer, PSNR: 27.9 dB, SSIM: 0.8206}}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/240_bern_restormer.png}
+        \includegraphics[width=\textwidth]{assets/figures/figure-11-b.png}
         \caption{\parbox{\textwidth}{Restormer, PSNR: 27.2 dB, SSIM: 0.8282}}
     \end{subfigure}
     \caption{Qualitative Results: House from Set12 Dataset, Bernoulli 240/250 }
@@ -104,13 +104,13 @@ Below are some samples of our experimentation. Full results are in the Resources
 \begin{figure}[H]
     \begin{subfigure}{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/240_pois_MPDenoiseNet.png}
+        \includegraphics[width=\textwidth]{assets/figures/figure-12-a.png}
         \caption{\parbox{\textwidth}{Restormer, PSNR: 28.4 dB, SSIM: 0.9343}}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/240_pois_restormer.png}
+        \includegraphics[width=\textwidth]{assets/figures/figure-12-b.png}
         \caption{\parbox{\textwidth}{Restormer, PSNR: 28.6 dB, SSIM: 0.9361}}
     \end{subfigure}
     \caption{Qualitative Results: F-16 Airplane from Set12 Dataset, Poisson 240/250}
@@ -118,13 +118,13 @@ Below are some samples of our experimentation. Full results are in the Resources
 \begin{figure}[H]
     \begin{subfigure}{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/60_gau_3_MPDenoiseNet.png}
+        \includegraphics[width=\textwidth]{assets/figures/figure-13-a.png}
         \caption{\parbox{\textwidth}{MPDenoiseNet PSNR: 26.5 dB, SSIM: 0.6885}}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/60_gau_3_restormer.png}
+        \includegraphics[width=\textwidth]{assets/figures/figure-13-b.png}
         \caption{\parbox{\textwidth}{Restormer, PSNR: 26.4 dB, SSIM: 0.6803}}
     \end{subfigure}
     \caption{Qualitative Results: Man from Set12 Dataset, Gaussian Noise 60/250}
@@ -133,13 +133,13 @@ Below are some samples of our experimentation. Full results are in the Resources
 \begin{figure}[H]
     \begin{subfigure}{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/240_sap_2_MPDenoiseNet.png}
+        \includegraphics[width=\textwidth]{assets/figures/figure-14-a.png}
         \caption{\parbox{\textwidth}{MPDenoiseNet, PSNR: 24.9 dB, SSIM: 0.6980}}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.48\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{assets/240_sap_2_restormer.png}
+        \includegraphics[width=\textwidth]{assets/figures/figure-14-b.png}
         \caption{\parbox{\textwidth}{Restormer, PSNR: 24.7 dB, SSIM: 0.6979}}
     \end{subfigure}
     \caption{Qualitative Results: Boat from Set12 Dataset, Salt \& Pepper Noise 240/250}
@@ -172,9 +172,9 @@ MPDenoiseNet is shown through the results below to be significantly more resourc
 
 \begin{figure}[htbp]
     \centering
-    \subfloat[Model Memory Usage]{\includegraphics[width=0.45\textwidth]{assets/memory-requirements.png}}
+    \subfloat[Model Memory Usage]{\includegraphics[width=0.45\textwidth]{assets/figures/figure-15-a.png}}
     \hfill
-    \subfloat[Model Throughput]{\includegraphics[width=0.45\textwidth]{assets/throughput.png}}
+    \subfloat[Model Throughput]{\includegraphics[width=0.45\textwidth]{assets/figures/figure-15-b.png}}
     \caption{Computational efficiency comparisons using multiple image sizes.}
     \label{fig:sidebyside}
 \end{figure}
