@@ -6,9 +6,9 @@ The performance of MPDenoiseNet was evaluated on four public datasets \textbf{BS
 
 \subsection{Noise Simulation and Levels}
 
-Images from the four utilized datasets were corrupted with one of four distinct types of noise: \textbf{Poisson Noise}, \textbf{Bernoulli Noise}, and \textbf{Salt and Pepper Noise} with noise density ranging from 150/255 to 240/255 in increments of 10/255. And \textbf{Gaussian Noise}: with noise levels (standard deviation $\sigma$) were set to 15/255, 25/255, 50/255, and 60/255.
+Images from the four utilized datasets were corrupted with one of four distinct types of noise: \textbf{Poisson Noise}, \textbf{Bernoulli Noise}, and \textbf{Salt-and-Pepper Noise} with noise density ranging from 150/255 to 240/255 in increments of 10/255. And \textbf{Gaussian Noise}: with noise levels (standard deviation $\sigma$) were set to 15/255, 25/255, 50/255, and 60/255.
 
-Detailed experimental results of MPDenoiseNet in comparison with Restormer are listed, both MPDenoiseNet and Restormer were trained using the methodology outlined in the training section \ref{sec:training_details}. Both models were trained on the same training data, same hardware and for the same number of epochs. The denoising performance was quantitatively evaluated using the \textbf{Peak Signal-to-Noise Ratio (PSNR)} and \textbf{Structural Similarity Index (SSIM)} metrics. PSNR focusing on pixel-level fidelity and SSIM emphasizing structural and perceptual aspects. We found MPDenoiseNets denoising performance is competitive with Restormer's.
+Detailed experimental results of MPDenoiseNet in comparison with Restormer are listed, both MPDenoiseNet and Restormer were trained using the methodology outlined in the training section \ref{sec:training_details}. Both models were trained on the same training data, same hardware and for the same number of epochs. The denoising performance was quantitatively evaluated using the \textbf{Peak Signal-to-Noise Ratio (PSNR)} and \textbf{Structural Similarity Index (SSIM)} metrics. PSNR focuses on pixel-level fidelity and SSIM emphasizing structural and perceptual aspects. We found MPDenoiseNets denoising performance is competitive with Restormer's.
 \subsection{Quantitative Results}
 
 \input{sections/experiments/Gaussian.tex}
@@ -18,7 +18,7 @@ Detailed experimental results of MPDenoiseNet in comparison with Restormer are l
 
 \subsection{Qualitative Results and Visual Inspection}
 
-As suggested by the quanitative results, MPDenoiseNets performance is competitive with Restormer's. In many of our experiments, we saw that MPDenoiseNet tends to better perserve minor details like intricate patterns and stripes, while Restormer tends to perserve the overall structure of the image better, with less distortion to straight edges. The following two exaples demosntrate this well. In Figure \ref{fig:sidebyside-example-1}, MPDenoiseNet perserves the tile pattern better than Restormer, While Restormer perserves the straight edges of the tiles better. Similar observatiosn can be made from \ref{fig:sidebyside-example-2}.
+As suggested by the quantitative results, MPDenoiseNet's performance is competitive with Restormer's. In many of our experiments, we saw that MPDenoiseNet tends to better preserve minor details like intricate patterns and stripes, while Restormer tends to preserve the overall structure of the image better, with less distortion to straight edges. The following two examples demosntrate this well. In Figure \ref{fig:sidebyside-example-1}, MPDenoiseNet preserves the tile pattern better than Restormer, while Restormer preserves the straight edges of the tiles better. Similar observations can be made from \ref{fig:sidebyside-example-2}.
 
 \begin{figure}[htbp]
     \centering
@@ -148,14 +148,14 @@ Below are some samples of our experimentation. Full results are in the Resources
 
 \subsection{Performance Comparisons}
 
-MPDenoiseNet is shown through the results below to significantly more resource efficient than Restormer. These tests were performed on a machine with a single nVidia L4 GPU with 24GB of VRAM.
+MPDenoiseNet is shown through the results below to be significantly more resource efficient than Restormer. These tests were performed on a machine with a single nVidia L4 GPU with 24GB of VRAM.
 
 \begin{table}[H]
     \centering
     \begin{tabular}{lcccccc}
     \toprule
-    Size & Restormer Mem. & MPDenoiseNetMem. & Restormer Thr. & MPDenoiseNethr. \\
-    (px)    & (MBs)     & (MBs)     & (im/s)& (im/s)\\
+    Size & Restormer Mem. & MPDenoiseNetMem. & Restormer Thr. & MPDenoiseNet Thr. \\
+    (px)    & (MB)     & (MB)     & (img/s)& (img/s)\\
     \midrule
     64      & 247.97    & 212.48    & 25.15 & 45.27 \\
     128     & 307.01    & 136.07    & 24.12 & 43.95 \\
