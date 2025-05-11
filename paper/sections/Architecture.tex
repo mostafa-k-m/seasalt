@@ -4,11 +4,11 @@ where the functions represent the major stages described below.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{assets/architecture/MPDenoiseNet.png}
+    \includegraphics[width=1\textwidth]{assets/figures/figure-1.png}
     \caption{MPDenoiseNet Full Architecture Diagram.}
     \label{fig:MPDenoiseNet_architecture}
 \end{figure}
-
+/
 \subsection{Parallel Processing Branches}
 The input image $I$ is initially processed concurrently through two specialized branches designed to handle different noise characteristics.
 
@@ -35,7 +35,7 @@ where $\odot$ is the Hadamard product. The full branch applies 7 such blocks ($f
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{assets/architecture/SeconvBlock.png}
+    \includegraphics[width=1\textwidth]{assets/figures/figure-2.png}
     \caption{SeConv Block Diagram.}
     \label{fig:seconv_block}
 \end{figure}
@@ -52,7 +52,7 @@ The diffusion process incorporates learned components: gradients are processed b
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{assets/architecture/AnisotropicDiffusionBlock.png}
+    \includegraphics[width=1\textwidth]{assets/figures/figure-3.png}
     \caption{Anisotropic Diffusion Block Diagram.}
     \label{fig:anisotropic_block}
 \end{figure}
@@ -80,7 +80,7 @@ The full sequence produces the output $O_{TF} = f_{TF}(O_{Emb})$, where $O_{TF} 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{assets/architecture/TransformerBlock.png}
+    \includegraphics[width=1\textwidth]{assets/figures/figure-4.png}
     \caption{Transformer Block Diagram.}
     \label{fig:transformer_block}
 \end{figure}
@@ -96,7 +96,7 @@ Finally, an output layer maps the features from the last decoder stage back to t
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\textwidth]{assets/architecture/Unet.png}
+    \includegraphics[width=1\textwidth]{assets/figures/figure-5.png}
     \caption{Asymmetric U-Net AutoEncoder Block Diagram.}
     \label{fig:unet_block}
 \end{figure}
