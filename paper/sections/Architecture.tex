@@ -13,7 +13,7 @@ where the functions represent the major stages described below.
 The input image $I$ is initially processed concurrently through two specialized branches designed to handle different noise characteristics.
 
 \subsubsection{SeConv Branch}
-This branch targets Salt-and-Pepper (SAP) and Bernoulli noise using a stack of 7 Selective Convolutional (SeConv) blocks ($f_{SeConv}$), inspired by SeConvNet \cite{Rafiee2021}. The SeConv block, detailed in Figure \ref{fig:seconv_block}, operates on a local input $X_{seconv}$ (where initially $X_{seconv}=I$) where noisy pixels (0 or 255) are preprocessed to 0. It estimates noisy pixels using a normalized weighted average of non-noisy neighbors via a trainable kernel $\omega$. Binary masks identify noisy ($M_{X_{seconv}}$) and non-noisy ($\tilde{M}_{X_{seconv}} = 1 - M_{X_{seconv}}$) pixels relative to the input $X_{seconv}$. The potential restoration value $S$ is calculated as:
+This branch targets Salt-and-Pepper (SAP) and Bernoulli noise using a stack of 7 Selective Convolutional (SeConv) blocks ($f_{SeConv}$), inspired by SeConvNet \cite{Rafiee2021} which is shown to outperform state-of-the-art Salt-and-Pepper denoising methods. The SeConv block, detailed in Figure \ref{fig:seconv_block}, operates on a local input $X_{seconv}$ (where initially $X_{seconv}=I$). It estimates noisy pixels using a normalized weighted average of non-noisy neighbors via a trainable kernel $\omega$. Binary masks (noise maps) identify noisy ($M_{X_{seconv}}$) and non-noisy ($\tilde{M}_{X_{seconv}} = 1 - M_{X_{seconv}}$) pixels relative to the input $X_{seconv}$, where noisy pixels are those of values 0 or 255. The potential restoration value $S$ is calculated as:
 \begin{equation} \label{eq:seconv_s}
 [S]_{i,j,k} = \begin{cases} 
 \frac{[X_{seconv} * \omega]_{i,j,k}}{[\tilde{M}_{X_{seconv}} * \omega]_{i,j,k}} & \text{if } [\tilde{M}_{X_{seconv}} * \omega]_{i,j,k} \neq 0 \\ 
@@ -41,14 +41,16 @@ where $\odot$ is the Hadamard product. The full branch applies 7 such blocks ($f
 \end{figure}
 
 \subsubsection{Anisotropic Diffusion Branch}
-This branch employs a stack of 5 novel Anisotropic Diffusion (AD) blocks ($f_{AD}$) to handle probabilistic noise (e.g., Gaussian, Poisson) while preserving edges, inspired by classical methods \cite{PeronaMalik1990}. The AD block structure is shown in Figure \ref{fig:anisotropic_block}. It processes a local input feature map $X_{ad}$ (where initially $X_{ad}=I$) by first approximating vertical ($\nabla_v X_{ad}$) and horizontal ($\nabla_h X_{ad}$) gradients. Spatially varying diffusion coefficients ($c_v, c_h$) are computed using an edge-stopping function $g(x)$ controlled by a learned parameter $\kappa$:
+To address probabilistic noise (e.g., Gaussian, Poisson), we introduce this approach inspired by classical Anisotropic Diffusion (AD) \cite{PeronaMalik1990}. The core challenge with such noise is that standard smoothing methods often blur sharp edges. Our novel AD branch adapts the classical edge-preserving smoothing concept into a learnable deep learning module.
+
+The AD block structure is shown in Figure \ref{fig:anisotropic_block}. It processes a local input feature map $X_{ad}$ (where initially $X_{ad}=I$) by first approximating vertical ($\nabla_v X_{ad}$) and horizontal ($\nabla_h X_{ad}$) gradients using lightweight 2D convolutions. Spatially varying diffusion coefficients ($c_v, c_h$) are computed using an edge-stopping function $g(x)$. Unlike in classical methods, the sensitivity parameter $\kappa$ is not a manually tuned hyperparameter. Instead, it is implemented as a learnable parameter, allowing the network to automatically learn the optimal edge threshold from the training data:
 \begin{equation} \label{eq:ad_g}
 g(x) = \frac{1}{1 + (x^2 / \kappa^2)} 
 \end{equation}
 \begin{equation} \label{eq:ad_c}
 c_v = g(\text{mean}_{ch}(|\nabla_v X_{ad}|)), \quad c_h = g(\text{mean}_{ch}(|\nabla_h X_{ad}|))
 \end{equation}
-The diffusion process incorporates learned components: gradients are processed by trainable convolutions ($Conv_{dv}, Conv_{dh}$), modulated by $c_v, c_h$ and a learned rate $\gamma$, forming a diffusion flux ($T_v, T_h$). This flux updates the input $X_{ad}$ via operations approximating divergence, resulting in $X_{ad, diffused}$. A final convolution $Conv_{out}$ produces the block output. The full branch applies 5 such blocks ($f_{AD}$), producing the final branch output $O_{AD} = f_{AD}(I)$.
+The diffusion process incorporates learned components, gradients are processed by trainable convolutions ($Conv_{dv}, Conv_{dh}$), modulated by $c_v, c_h$ and a second learnable parameter, the diffusion rate $\gamma$. This allows the model to learn the appropriate strength of the smoothing effect. Forming a diffusion flux ($T_v, T_h$), this flux updates the input $X_{ad}$ via operations approximating divergence, resulting in $X_{ad, diffused}$. A final convolution $Conv_{out}$ produces the block output. The full branch applies 5 such blocks ($f_{AD}$), producing the final branch output $O_{AD} = f_{AD}(I)$.
 
 \begin{figure}[H]
     \centering
