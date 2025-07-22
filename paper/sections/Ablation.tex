@@ -6,11 +6,9 @@ We evaluated several variants of the MPDenoiseNet architecture: \textbf{MPDenois
 
 The ablation study followed the same experimental methodology as described in Section \ref{sec:experimental_results}. Below are the average PSNR and SSIM scores of each ablation experiment (average across all datasets). Based on the performance degradation observed when components were removed (Tables \ref{table:ablation-1}, \ref{table:ablation-2}, \ref{table:ablation-3}), the MPDenoiseNetomponents rank in order of impact as follows: Transformer Blocks, U-Net Module, SeConv Blocks, and finally Anisotropic Diffusion Blocks. 
 
-While this ablation study indicates the Anisotropic Diffusion Blocks have the most modest quantitative impact among the model's components, it is included on the merit of being computationally inexpensive, while still providing a performance bonus. Further qualitative analysis on the denoised images is needed to exclude whether the AD branch provides a visual quality benefit, particularly in edge preservation.
-
 \begin{table}[H]
     \centering
-    \begin{tabular}{>{\centering\arraybackslash}p{2.5cm}*{10}{>{\centering\arraybackslash}p{.8cm}}}
+    \begin{tabular}{>{\centering\arraybackslash}p{3.5cm}*{10}{>{\centering\arraybackslash}p{.8cm}}}
         \toprule
         & \multicolumn{4}{c}{PSNR} & \multicolumn{4}{c}{SSIM} \\
         \cmidrule(lr){2-5} \cmidrule(lr){6-9}
@@ -28,9 +26,9 @@ While this ablation study indicates the Anisotropic Diffusion Blocks have the mo
     \label{table:ablation-1}
 \end{table}
 
-\begin{table}[!hbt]
+\begin{table}[H]
     \centering
-    \begin{tabular}{>{\centering\arraybackslash}p{2.5cm}*{10}{>{\centering\arraybackslash}p{.55cm}}}
+    \begin{tabular}{>{\centering\arraybackslash}p{3.5cm}*{10}{>{\centering\arraybackslash}p{.55cm}}}
         \toprule
         Dataset & 150 & 160 & 170 & 180 & 190 & 200 & 210 & 220 & 230 & 240 \\
         \midrule
@@ -63,9 +61,9 @@ While this ablation study indicates the Anisotropic Diffusion Blocks have the mo
     \label{table:ablation-2}
 \end{table}
 
-\begin{table}[!hbt]
+\begin{table}[H]
     \centering
-    \begin{tabular}{>{\centering\arraybackslash}p{2.5cm}*{10}{>{\centering\arraybackslash}p{.55cm}}}
+    \begin{tabular}{>{\centering\arraybackslash}p{3.5cm}*{10}{>{\centering\arraybackslash}p{.55cm}}}
         \toprule
         Noise Density & 150 & 160 & 170 & 180 & 190 & 200 & 210 & 220 & 230 & 240 \\
         \midrule
@@ -98,4 +96,6 @@ While this ablation study indicates the Anisotropic Diffusion Blocks have the mo
     \label{table:ablation-3}
 \end{table}
 
-The results presented in Tables \ref{table:ablation-1}, \ref{table:ablation-2}, and \ref{table:ablation-3} validate the effectiveness of MPDenoiseNet's multi-component design. Removing any major architectural element consistently leads to a degradation in performance across all tested noise types and metrics compared to the full baseline model, indicating that each module positively contributes to the final denoising capability. The magnitude of the performance drop upon removal allows us to rank the components by their impact. The Transformer blocks ($f_{TF}$) exhibit the most significant influence, as their removal causes the largest decrease in both PSNR and SSIM values across all noise conditions, highlighting the importance of global context modeling provided by the attention mechanism. The asymmetric U-Net AutoEncoder ($f_{AE}$) demonstrates the second highest impact, suggesting its crucial role in refining features and reconstructing the final high-quality image. The SeConv blocks ($f_{SeConv}$) show a notable contribution, particularly evident in the performance drop for Bernoulli and Salt-and-Pepper noise (Table \ref{table:ablation-2}), validating their specific design goal for impulse noise removal. Finally, the Anisotropic Diffusion blocks ($f_{AD}$), while contributing positively, show the smallest relative impact among the removed components in this study. These findings confirm the synergistic contribution of MPDenoiseNets architectural elements and justify the inclusion of each specialized component.
+The results presented in Tables \ref{table:ablation-1}, \ref{table:ablation-2}, and \ref{table:ablation-3} validate the effectiveness of MPDenoiseNet's multi-component design. Removing any major architectural element consistently leads to a degradation in performance across all tested noise types and metrics compared to the full baseline model, indicating that each module positively contributes to the final denoising capability. The magnitude of the performance drop upon removal allows us to rank the components by their impact. The Transformer blocks ($f_{TF}$) exhibit the most significant influence, as their removal causes the largest decrease in both PSNR and SSIM values across all noise conditions, highlighting the importance of global context modeling provided by the attention mechanism. The asymmetric U-Net AutoEncoder ($f_{AE}$) demonstrates the second highest impact, suggesting its crucial role in refining features and reconstructing the final high-quality image. The SeConv blocks ($f_{SeConv}$) show a notable contribution, particularly evident in the performance drop for Bernoulli and Salt-and-Pepper noise (Table \ref{table:ablation-2}), validating their specific design goal for impulse noise removal. Finally, the Anisotropic Diffusion blocks ($f_{AD}$), while contributing positively, show the smallest relative impact among the removed components in this study.
+
+While this ablation study indicates the Anisotropic Diffusion Blocks have the most modest quantitative impact among the model's components, it is included on the merit of being computationally inexpensive, while still providing a performance bonus. Further qualitative analysis on the denoised images is needed to exclude whether the AD branch provides a visual quality benefit, particularly in edge preservation. These findings confirm the synergistic contribution of MPDenoiseNets architectural elements and justify the inclusion of each specialized component.
