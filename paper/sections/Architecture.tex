@@ -41,7 +41,7 @@ where $\odot$ is the Hadamard product. The full branch applies 7 such blocks ($f
 \end{figure}
 
 \subsubsection{Anisotropic Diffusion Branch}
-To address probabilistic noise (e.g., Gaussian, Poisson), we introduce this approach inspired by classical Anisotropic Diffusion (AD) \cite{PeronaMalik1990}. The core challenge with such noise is that standard smoothing methods often blur sharp edges. Our novel AD branch adapts the classical edge-preserving smoothing concept into a learnable deep learning module.
+To address probabilistic noise (e.g., Gaussian, Poisson), we introduce this novel approach inspired by classical Anisotropic Diffusion (AD) \cite{PeronaMalik1990}. The core challenge with such noise is that standard smoothing methods often blur sharp edges. Our novel AD branch adapts the classical edge-preserving smoothing concept into a learnable deep learning module.
 
 The AD block ($f_{AD}$) structure is shown in Figure \ref{fig:anisotropic_block}. It processes a local input feature map $X_{ad}$ (where initially $X_{ad}=I$) by first approximating vertical ($\nabla_v X_{ad}$) and horizontal ($\nabla_h X_{ad}$) gradients using lightweight 2D convolutions. Spatially varying diffusion coefficients ($c_v, c_h$) are computed using an edge-stopping function $g(x)$. Unlike in classical methods, the sensitivity parameter $\kappa$ is not a manually tuned hyperparameter. Instead, it is implemented as a learnable parameter, allowing the network to automatically learn the optimal edge threshold from the training data:
 \begin{equation} \label{eq:ad_g}
